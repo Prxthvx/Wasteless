@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
-import '../dashboard/restaurant_dashboard.dart';
-import '../dashboard/ngo_dashboard.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -19,7 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
-  
+
   String _selectedRole = 'restaurant';
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -40,19 +38,15 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Sign up with Supabase Auth
       final response = await SupabaseService.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (response.user != null) {
-        // Create user profile in profiles table
         final profile = UserProfile(
           id: response.user!.id,
           email: _emailController.text.trim(),
@@ -67,47 +61,23 @@ class _SignupScreenState extends State<SignupScreen> {
             .insert(profile.toJson());
 
         if (mounted) {
-          // Navigate based on role
-          if (_selectedRole == 'restaurant') {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => RestaurantDashboard(profile: profile),
-              ),
-            );
-          } else if (_selectedRole == 'ngo') {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => NGODashboard(profile: profile),
-              ),
-            );
-          }
+          // 👇 Let AuthWrapper handle navigation
+          Navigator.of(context).pushReplacementNamed('/');
         }
       }
     } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Signup failed: ${e.message}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showError('Signup failed: ${e.message}');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('An error occurred: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showError('An error occurred: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -126,31 +96,22 @@ class _SignupScreenState extends State<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              const Icon(
-                Icons.recycling,
-                size: 80,
-                color: Colors.green,
-              ),
+              const Icon(Icons.recycling, size: 80, color: Colors.green),
               const SizedBox(height: 24),
               const Text(
                 'Create Your Account',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
                 'Start your journey to reduce food waste',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
+
+              // Full name
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -158,14 +119,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
+                validator: (v) => v == null || v.isEmpty ? 'Please enter your name' : null,
               ),
               const SizedBox(height: 16),
+
+              // Email
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -174,17 +132,17 @@ class _SignupScreenState extends State<SignupScreen> {
                   prefixIcon: Icon(Icons.email),
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Please enter your email';
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
                     return 'Please enter a valid email';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
+
+              // Role dropdown
               DropdownButtonFormField<String>(
                 value: _selectedRole,
                 decoration: const InputDecoration(
@@ -192,25 +150,12 @@ class _SignupScreenState extends State<SignupScreen> {
                   prefixIcon: Icon(Icons.work),
                   border: OutlineInputBorder(),
                 ),
-                items: _roles.map((role) {
-                  return DropdownMenuItem(
-                    value: role,
-                    child: Text(role.capitalize()),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedRole = value!;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a role';
-                  }
-                  return null;
-                },
+                items: _roles.map((role) => DropdownMenuItem(value: role, child: Text(role.capitalize()))).toList(),
+                onChanged: (v) => setState(() => _selectedRole = v!),
               ),
               const SizedBox(height: 16),
+
+              // Location
               TextFormField(
                 controller: _locationController,
                 decoration: const InputDecoration(
@@ -219,14 +164,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   border: OutlineInputBorder(),
                   hintText: 'City, State or Address',
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your location';
-                  }
-                  return null;
-                },
+                validator: (v) => v == null || v.isEmpty ? 'Please enter your location' : null,
               ),
               const SizedBox(height: 16),
+
+              // Password
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -234,28 +176,20 @@ class _SignupScreenState extends State<SignupScreen> {
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   border: const OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Please enter a password';
+                  if (v.length < 6) return 'Password must be at least 6 characters';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
+
+              // Confirm Password
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
@@ -263,72 +197,39 @@ class _SignupScreenState extends State<SignupScreen> {
                   labelText: 'Confirm Password',
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
+                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                   ),
                   border: const OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please confirm your password';
-                  }
-                  if (value != _passwordController.text) {
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                },
+                validator: (v) => v != _passwordController.text ? 'Passwords do not match' : null,
               ),
               const SizedBox(height: 24),
+
+              // Signup button
               ElevatedButton(
                 onPressed: _isLoading ? null : _signup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Sign Up',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                    ? const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                    : const Text('Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
+
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Already have an account? "),
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/login');
-                    },
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    onPressed: () => Navigator.of(context).pushNamed('/login'),
+                    child: const Text('Login', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -338,7 +239,5 @@ class _SignupScreenState extends State<SignupScreen> {
 }
 
 extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1)}";
-  }
+  String capitalize() => "${this[0].toUpperCase()}${substring(1)}";
 }
