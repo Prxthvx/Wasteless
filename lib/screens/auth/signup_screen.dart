@@ -36,43 +36,40 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signup() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      final response = await SupabaseService.client.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+  try {
+    final response = await SupabaseService.client.auth.signUp(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
 
-      if (response.user != null) {
-        final profile = UserProfile(
-          id: response.user!.id,
-          email: _emailController.text.trim(),
-          name: _nameController.text.trim(),
-          role: _selectedRole,
-          location: _locationController.text.trim(),
-          createdAt: DateTime.now().toIso8601String(),
-        );
+    if (response.user != null) {
+      // ✅ Instead of insert, just update the auto-created profile
+      await SupabaseService.client
+          .from('profiles')
+          .update({
+            'name': _nameController.text.trim(),
+            'role': _selectedRole,
+            'location': _locationController.text.trim(),
+            'email': _emailController.text.trim(),
+          })
+          .eq('id', response.user!.id);
 
-        await SupabaseService.client
-            .from('profiles')
-            .insert(profile.toJson());
-
-        if (mounted) {
-          // 👇 Let AuthWrapper handle navigation
-          Navigator.of(context).pushReplacementNamed('/');
-        }
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/');
       }
-    } on AuthException catch (e) {
-      _showError('Signup failed: ${e.message}');
-    } catch (e) {
-      _showError('An error occurred: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
+  } on AuthException catch (e) {
+    _showError('Signup failed: ${e.message}');
+  } catch (e) {
+    _showError('An error occurred: $e');
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
