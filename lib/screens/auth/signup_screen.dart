@@ -47,7 +47,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
 
     if (response.user != null) {
-      // ✅ Instead of insert, just update the auto-created profile
+      //  Instead of insert, just update the auto-created profile
       await SupabaseService.client
           .from('profiles')
           .update({
