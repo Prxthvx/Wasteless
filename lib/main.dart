@@ -10,7 +10,7 @@ Future<void> main() async {
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://bpenozctewzutdmiggkk.supabase.co', // 🔑 Replace with your Supabase project URL
+    url: 'https://bpenozctewzutdmiggkk.supabase.co', // Replace with your Supabase project URL
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwZW5vemN0ZXd6dXRkbWlnZ2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMzcxMTQsImV4cCI6MjA3MDkxMzExNH0.6BkfmaEOpj-CyWNn4f0PuPK654LQSJ5HnfEWJaRrnLU', // 🔑 Replace with your Supabase anon/public key
   );
 

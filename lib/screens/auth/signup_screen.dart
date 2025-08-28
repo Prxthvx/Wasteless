@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
-import '../../models/user_profile.dart';
+//import '../../models/user_profile.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -17,6 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String _selectedRole = 'restaurant';
   bool _isLoading = false;
@@ -32,6 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _confirmPasswordController.dispose();
     _nameController.dispose();
     _locationController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -55,6 +57,7 @@ class _SignupScreenState extends State<SignupScreen> {
             'role': _selectedRole,
             'location': _locationController.text.trim(),
             'email': _emailController.text.trim(),
+            'phone_number': _phoneController.text.trim(),
           })
           .eq('id', response.user!.id);
 
@@ -162,6 +165,19 @@ class _SignupScreenState extends State<SignupScreen> {
                   hintText: 'City, State or Address',
                 ),
                 validator: (v) => v == null || v.isEmpty ? 'Please enter your location' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Phone Number
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  prefixIcon: Icon(Icons.phone),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v == null || v.isEmpty ? 'Please enter your phone number' : null,
               ),
               const SizedBox(height: 16),
 
