@@ -1,6 +1,24 @@
 -- Create profiles table for WasteLess app
 -- Run this in your Supabase SQL editor
 
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Restaurants can view own inventory" ON inventory_items;
+DROP POLICY IF EXISTS "Restaurants can insert own inventory" ON inventory_items;
+DROP POLICY IF EXISTS "Restaurants can update own inventory" ON inventory_items;
+DROP POLICY IF EXISTS "Restaurants can delete own inventory" ON inventory_items;
+DROP POLICY IF EXISTS "Authenticated users can view donations" ON donations;
+DROP POLICY IF EXISTS "Restaurants can insert own donations" ON donations;
+DROP POLICY IF EXISTS "Restaurants can update own donations" ON donations;
+DROP POLICY IF EXISTS "Restaurants can delete own donations" ON donations;
+DROP POLICY IF EXISTS "NGOs can view own claims" ON donation_claims;
+DROP POLICY IF EXISTS "NGOs can insert own claims" ON donation_claims;
+DROP POLICY IF EXISTS "NGOs can update own claims" ON donation_claims;
+DROP POLICY IF EXISTS "Restaurants can view claims for their donations" ON donation_claims;
+DROP POLICY IF EXISTS "Restaurants can update claims for their donations" ON donation_claims;
+
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
@@ -16,15 +34,12 @@ CREATE TABLE IF NOT EXISTS profiles (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for profiles table
--- Users can read their own profile
 CREATE POLICY "Users can view own profile" ON profiles
     FOR SELECT USING (auth.uid() = id);
 
--- Users can insert their own profile
 CREATE POLICY "Users can insert own profile" ON profiles
     FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Users can update their own profile
 CREATE POLICY "Users can update own profile" ON profiles
     FOR UPDATE USING (auth.uid() = id);
 

@@ -35,11 +35,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null && mounted) {
-        // 👇 Let AuthWrapper handle routing based on profile role
+        // User is authenticated, proceed to dashboard
+        // The AuthWrapper will handle profile creation if needed
         Navigator.of(context).pushReplacementNamed('/');
       }
     } on AuthException catch (e) {
-      _showError('Login failed: ${e.message}');
+      if (e.message.contains('Invalid login credentials')) {
+        _showError('Invalid email or password. Please try again.');
+      } else {
+        _showError('Login failed: ${e.message}');
+      }
     } catch (e) {
       _showError('An error occurred: $e');
     } finally {
