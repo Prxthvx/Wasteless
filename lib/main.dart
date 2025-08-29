@@ -4,6 +4,7 @@ import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/demo/demo_role_picker.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
+        '/demo': (context) => const DemoRolePickerScreen(),
       },
     );
   }
