@@ -4,6 +4,7 @@ class UserProfile {
   final String name;
   final String role;
   final String location;
+  final String? phoneNumber; // Make it nullable if it's optional
   final String createdAt;
 
   UserProfile({
@@ -12,6 +13,7 @@ class UserProfile {
     required this.name,
     required this.role,
     required this.location,
+    this.phoneNumber,
     required this.createdAt,
   });
 
@@ -22,6 +24,7 @@ class UserProfile {
       name: json['name'] as String,
       role: json['role'] as String,
       location: json['location'] as String,
+      phoneNumber: json['phone_number'] as String?,
       createdAt: json['created_at'] as String,
     );
   }
@@ -33,12 +36,13 @@ class UserProfile {
       'name': name,
       'role': role,
       'location': location,
+      'phone_number': phoneNumber,
       'created_at': createdAt,
     };
   }
 
   @override
   String toString() {
-    return 'UserProfile(id: $id, email: $email, name: $name, role: $role, location: $location)';
+    return 'UserProfile(id: $id, email: $email, name: $name, role: $role, location: $location, phoneNumber: $phoneNumber)';
   }
 }
