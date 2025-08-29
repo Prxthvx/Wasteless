@@ -104,7 +104,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -126,6 +126,14 @@ class WelcomeScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushNamed('/demo'),
+                      child: const Text(
+                        'Try demo (no signup)',
+                        style: TextStyle(color: Colors.white, fontSize: 16, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
