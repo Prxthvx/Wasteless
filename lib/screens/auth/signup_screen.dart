@@ -49,24 +49,46 @@ class _SignupScreenState extends State<SignupScreen> {
     );
 
     if (response.user != null) {
-      //  Instead of insert, just update the auto-created profile
-      await SupabaseService.client
-          .from('profiles')
-          .update({
-            'name': _nameController.text.trim(),
-            'role': _selectedRole,
-            'location': _locationController.text.trim(),
-            'email': _emailController.text.trim(),
-            'phone_number': _phoneController.text.trim(),
-          })
-          .eq('id', response.user!.id);
+      try {
+        // Create the user profile
+        await SupabaseService.client
+            .from('profiles')
+            .insert({
+              'id': response.user!.id,
+              'name': _nameController.text.trim(),
+              'role': _selectedRole,
+              'location': _locationController.text.trim(),
+              'email': _emailController.text.trim(),
+            });
 
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created successfully! You can now login.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pushReplacementNamed('/welcome');
+        }
+      } catch (profileError) {
+        // If profile creation fails, still show success but warn about profile
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account created but profile setup failed: $profileError'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          Navigator.of(context).pushReplacementNamed('/welcome');
+        }
       }
     }
   } on AuthException catch (e) {
-    _showError('Signup failed: ${e.message}');
+    if (e.message.contains('already registered')) {
+      _showError('This email is already registered. Please try logging in instead.');
+    } else {
+      _showError('Signup failed: ${e.message}');
+    }
   } catch (e) {
     _showError('An error occurred: $e');
   } finally {

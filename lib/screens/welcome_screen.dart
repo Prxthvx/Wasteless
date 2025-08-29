@@ -155,6 +155,14 @@ class WelcomeScreen extends StatelessWidget {
                         style: TextStyle(color: Colors.white, fontSize: 16, decoration: TextDecoration.underline),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushNamed('/debug'),
+                      child: const Text(
+                        'Debug Database',
+                        style: TextStyle(color: Colors.orange, fontSize: 14, decoration: TextDecoration.underline),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),

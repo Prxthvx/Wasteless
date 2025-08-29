@@ -934,8 +934,15 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
   void _showAddItemDialog() {
     showDialog(
       context: context,
-      builder: (context) => const AddInventoryDialog(),
-    ).then((_) => _loadData());
+      builder: (context) => AddInventoryDialog(
+        profile: widget.profile,
+        onItemAdded: (newItem) {
+          setState(() {
+            _inventory.add(newItem);
+          });
+        },
+      ),
+    );
   }
 
   void _showEditItemDialog(InventoryItem item) {
@@ -1054,7 +1061,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
 
 // Dialog classes (simplified for demo)
 class AddInventoryDialog extends StatefulWidget {
-  const AddInventoryDialog({super.key});
+  final UserProfile profile;
+  final Function(InventoryItem) onItemAdded;
+  
+  const AddInventoryDialog({
+    super.key,
+    required this.profile,
+    required this.onItemAdded,
+  });
 
   @override
   State<AddInventoryDialog> createState() => _AddInventoryDialogState();
@@ -1149,18 +1163,32 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              // In demo mode, just close the dialog
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Item added successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          },
+                      onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                // Add the new item to the inventory list
+                final newItem = InventoryItem(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  restaurantId: widget.profile.id,
+                  name: _nameCtrl.text.trim(),
+                  quantity: _quantityCtrl.text.trim(),
+                  category: _category,
+                  expiryDate: _expiryDate,
+                  status: 'available',
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                );
+                
+                widget.onItemAdded(newItem);
+                
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Item added successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
           child: const Text('Add Item'),
         ),
