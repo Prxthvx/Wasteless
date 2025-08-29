@@ -8,30 +8,32 @@ class InventoryRepository {
 
   InventoryRepository({SupabaseClient? client}) : _client = client ?? SupabaseService.client;
 
-  Future<List<InventoryItem>> listMyItems(String userId) async {
+  Future<List<InventoryItem>> listInventory(String restaurantId) async {
     final data = await _client
         .from('inventory_items')
         .select()
-        .eq('owner_id', userId)
-        .order('expiry_date', ascending: true, nullsFirst: true);
+        .eq('restaurant_id', restaurantId)
+        .order('expiry_date', ascending: true);
     return (data as List).map((e) => InventoryItem.fromJson(Map<String, dynamic>.from(e))).toList();
   }
 
+  Future<List<InventoryItem>> listMyItems(String userId) async {
+    return listInventory(userId);
+  }
+
   Future<InventoryItem> addItem({
-    required String ownerId,
+    required String restaurantId,
     required String name,
-    required double quantity,
-    required String unit,
-    DateTime? expiryDate,
-    String? notes,
+    required String quantity,
+    required DateTime expiryDate,
+    String status = 'available',
   }) async {
     final insert = {
-      'owner_id': ownerId,
+      'restaurant_id': restaurantId,
       'name': name,
       'quantity': quantity,
-      'unit': unit,
-      'expiry_date': expiryDate?.toIso8601String(),
-      'notes': notes,
+      'expiry_date': expiryDate.toIso8601String().split('T')[0],
+      'status': status,
     };
     final data = await _client
         .from('inventory_items')
@@ -45,10 +47,10 @@ class InventoryRepository {
     await _client.from('inventory_items').delete().eq('id', itemId);
   }
 
-  Future<InventoryItem> updateQuantity(String itemId, double newQuantity) async {
+  Future<InventoryItem> updateItem(String itemId, Map<String, dynamic> updates) async {
     final data = await _client
         .from('inventory_items')
-        .update({'quantity': newQuantity})
+        .update(updates)
         .eq('id', itemId)
         .select()
         .single();
@@ -57,23 +59,21 @@ class InventoryRepository {
 
   Future<Donation> postDonation({
     required String restaurantId,
-    required String itemName,
-    required double quantity,
-    required String unit,
-    required String pickupLocation,
-    DateTime? bestBefore,
-    String? notes,
+    required String title,
+    String? description,
+    required String quantity,
+    required DateTime expiryDate,
   }) async {
     final payload = {
       'restaurant_id': restaurantId,
-      'item_name': itemName,
+      'title': title,
+      'description': description,
       'quantity': quantity,
-      'unit': unit,
-      'pickup_location': pickupLocation,
-      'best_before': bestBefore?.toIso8601String(),
-      'notes': notes,
+      'expiry_date': expiryDate.toIso8601String().split('T')[0],
+      'status': 'available',
     };
     final data = await _client.from('donations').insert(payload).select().single();
     return Donation.fromJson(Map<String, dynamic>.from(data));
   }
 }
+

@@ -17,15 +17,15 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for profiles table
 -- Users can read their own profile
-CREATE POLICY IF NOT EXISTS "Users can view own profile" ON profiles
+CREATE POLICY "Users can view own profile" ON profiles
     FOR SELECT USING (auth.uid() = id);
 
 -- Users can insert their own profile
-CREATE POLICY IF NOT EXISTS "Users can insert own profile" ON profiles
+CREATE POLICY "Users can insert own profile" ON profiles
     FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Users can update their own profile
-CREATE POLICY IF NOT EXISTS "Users can update own profile" ON profiles
+CREATE POLICY "Users can update own profile" ON profiles
     FOR UPDATE USING (auth.uid() = id);
 
 -- Create function to automatically create profile on signup
@@ -52,103 +52,90 @@ CREATE INDEX IF NOT EXISTS profiles_created_at_idx ON profiles(created_at);
 -- Inventory and Donations Schema
 -- ============================================================
 
--- Inventory items owned by restaurant users
+-- Create inventory_items table
 CREATE TABLE IF NOT EXISTS inventory_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    restaurant_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
-    quantity NUMERIC(12,2) NOT NULL CHECK (quantity >= 0),
-    unit TEXT NOT NULL, -- e.g., kg, g, L, pcs
-    expiry_date DATE,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    quantity TEXT NOT NULL, -- e.g., "5 kg", "10 loaves", "30 units"
+    category TEXT NOT NULL DEFAULT 'Other', -- e.g., "Fruits", "Vegetables", "Dairy"
+    expiry_date DATE NOT NULL,
+    status TEXT DEFAULT 'available' CHECK (status IN ('available', 'donated', 'wasted')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
 
--- Restaurants can manage only their items
-CREATE POLICY IF NOT EXISTS inventory_select_own ON inventory_items
-    FOR SELECT USING (auth.uid() = owner_id);
+CREATE POLICY "Restaurants can view own inventory" ON inventory_items
+    FOR SELECT USING (auth.uid() = restaurant_id);
 
-CREATE POLICY IF NOT EXISTS inventory_insert_own ON inventory_items
-    FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Restaurants can insert own inventory" ON inventory_items
+    FOR INSERT WITH CHECK (auth.uid() = restaurant_id);
 
-CREATE POLICY IF NOT EXISTS inventory_update_own ON inventory_items
-    FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Restaurants can update own inventory" ON inventory_items
+    FOR UPDATE USING (auth.uid() = restaurant_id);
 
-CREATE POLICY IF NOT EXISTS inventory_delete_own ON inventory_items
-    FOR DELETE USING (auth.uid() = owner_id);
+CREATE POLICY "Restaurants can delete own inventory" ON inventory_items
+    FOR DELETE USING (auth.uid() = restaurant_id);
 
-CREATE INDEX IF NOT EXISTS inventory_owner_idx ON inventory_items(owner_id);
-CREATE INDEX IF NOT EXISTS inventory_expiry_idx ON inventory_items(expiry_date);
-
--- Donation offers posted by restaurants
+-- Create donations table
 CREATE TABLE IF NOT EXISTS donations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    restaurant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    item_name TEXT NOT NULL,
-    quantity NUMERIC(12,2) NOT NULL CHECK (quantity > 0),
-    unit TEXT NOT NULL,
-    pickup_location TEXT NOT NULL,
-    best_before TIMESTAMPTZ,
-    notes TEXT,
-    status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available','claimed','completed','cancelled')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE SET NULL, -- Link to inventory item
+    restaurant_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    quantity TEXT NOT NULL,
+    expiry_date DATE NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'claimed', 'completed', 'cancelled')),
+    posted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    claimed_by UUID REFERENCES profiles(id) ON DELETE SET NULL, -- NGO who claimed it
+    claimed_at TIMESTAMP WITH TIME ZONE,
+    claim_message TEXT,
+    completed_at TIMESTAMP WITH TIME ZONE
 );
 
 ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
 
--- Anyone authenticated can view available donations
-CREATE POLICY IF NOT EXISTS donations_public_select_available ON donations
-    FOR SELECT USING (status = 'available');
+CREATE POLICY "Authenticated users can view donations" ON donations
+    FOR SELECT USING (auth.role() = 'authenticated'); -- All authenticated users can see available donations
 
--- Restaurant can view their own donations regardless of status
-CREATE POLICY IF NOT EXISTS donations_restaurant_select_own ON donations
-    FOR SELECT USING (auth.uid() = restaurant_id);
-
--- Restaurant can insert their own donation offers
-CREATE POLICY IF NOT EXISTS donations_insert_own ON donations
+CREATE POLICY "Restaurants can insert own donations" ON donations
     FOR INSERT WITH CHECK (auth.uid() = restaurant_id);
 
--- Restaurant can update their own donation offers
-CREATE POLICY IF NOT EXISTS donations_update_own ON donations
+CREATE POLICY "Restaurants can update own donations" ON donations
     FOR UPDATE USING (auth.uid() = restaurant_id);
 
-CREATE INDEX IF NOT EXISTS donations_status_idx ON donations(status);
-CREATE INDEX IF NOT EXISTS donations_restaurant_idx ON donations(restaurant_id);
-CREATE INDEX IF NOT EXISTS donations_best_before_idx ON donations(best_before);
+CREATE POLICY "Restaurants can delete own donations" ON donations
+    FOR DELETE USING (auth.uid() = restaurant_id);
 
--- Claims made by NGOs on donations
+-- Create donation_claims table (for tracking claims by NGOs)
 CREATE TABLE IF NOT EXISTS donation_claims (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    donation_id UUID NOT NULL REFERENCES donations(id) ON DELETE CASCADE,
-    ngo_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    claim_status TEXT NOT NULL DEFAULT 'pending' CHECK (claim_status IN ('pending','approved','rejected','picked_up','cancelled')),
-    message TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (donation_id, ngo_id)
+    donation_id UUID REFERENCES donations(id) ON DELETE CASCADE NOT NULL,
+    ngo_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    claim_message TEXT,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+    claimed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    rejected_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE (donation_id, ngo_id) -- An NGO can only claim a specific donation once
 );
 
 ALTER TABLE donation_claims ENABLE ROW LEVEL SECURITY;
 
--- NGOs can see claims they made; restaurants can see claims on their donations
-CREATE POLICY IF NOT EXISTS donation_claims_select_self ON donation_claims
-    FOR SELECT USING (
-        auth.uid() = ngo_id OR auth.uid() IN (SELECT restaurant_id FROM donations WHERE donations.id = donation_id)
-    );
+CREATE POLICY "NGOs can view own claims" ON donation_claims
+    FOR SELECT USING (auth.uid() = ngo_id);
 
--- NGOs can create claims
-CREATE POLICY IF NOT EXISTS donation_claims_insert_self ON donation_claims
+CREATE POLICY "NGOs can insert own claims" ON donation_claims
     FOR INSERT WITH CHECK (auth.uid() = ngo_id);
 
--- NGOs can update their own claims; restaurants can update claims on their donations (e.g., approve)
-CREATE POLICY IF NOT EXISTS donation_claims_update_self_or_owner ON donation_claims
-    FOR UPDATE USING (
-        auth.uid() = ngo_id OR auth.uid() IN (SELECT restaurant_id FROM donations WHERE donations.id = donation_id)
-    );
+CREATE POLICY "NGOs can update own claims" ON donation_claims
+    FOR UPDATE USING (auth.uid() = ngo_id);
 
-CREATE INDEX IF NOT EXISTS donation_claims_donation_idx ON donation_claims(donation_id);
-CREATE INDEX IF NOT EXISTS donation_claims_ngo_idx ON donation_claims(ngo_id);
+CREATE POLICY "Restaurants can view claims for their donations" ON donation_claims
+    FOR SELECT USING (EXISTS (SELECT 1 FROM donations WHERE donations.id = donation_id AND donations.restaurant_id = auth.uid()));
+
+CREATE POLICY "Restaurants can update claims for their donations" ON donation_claims
+    FOR UPDATE USING (EXISTS (SELECT 1 FROM donations WHERE donations.id = donation_id AND donations.restaurant_id = auth.uid()));

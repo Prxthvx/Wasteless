@@ -1,55 +1,71 @@
 class Donation {
   final String id;
+  final String? inventoryItemId;
   final String restaurantId;
-  final String itemName;
-  final double quantity;
-  final String unit;
-  final String pickupLocation;
-  final DateTime? bestBefore;
-  final String? notes;
-  final String status; // available, claimed, completed, cancelled
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String title;
+  final String? description;
+  final String quantity;
+  final DateTime expiryDate;
+  final String status;
+  final DateTime postedAt;
+  final String? claimedBy; // NGO ID
+  final DateTime? claimedAt;
+  final String? claimMessage;
+  final DateTime? completedAt;
 
   Donation({
     required this.id,
+    this.inventoryItemId,
     required this.restaurantId,
-    required this.itemName,
+    required this.title,
+    this.description,
     required this.quantity,
-    required this.unit,
-    required this.pickupLocation,
-    required this.bestBefore,
-    required this.notes,
+    required this.expiryDate,
     required this.status,
-    required this.createdAt,
-    required this.updatedAt,
+    required this.postedAt,
+    this.claimedBy,
+    this.claimedAt,
+    this.claimMessage,
+    this.completedAt,
   });
 
   factory Donation.fromJson(Map<String, dynamic> json) {
     return Donation(
       id: json['id'] as String,
+      inventoryItemId: json['inventory_item_id'] as String?,
       restaurantId: json['restaurant_id'] as String,
-      itemName: json['item_name'] as String,
-      quantity: (json['quantity'] as num).toDouble(),
-      unit: json['unit'] as String,
-      pickupLocation: json['pickup_location'] as String,
-      bestBefore: json['best_before'] != null ? DateTime.parse(json['best_before'] as String) : null,
-      notes: json['notes'] as String?,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      quantity: json['quantity'] as String,
+      expiryDate: DateTime.parse(json['expiry_date'] as String),
       status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      postedAt: DateTime.parse(json['posted_at'] as String),
+      claimedBy: json['claimed_by'] as String?,
+      claimedAt: json['claimed_at'] != null
+          ? DateTime.parse(json['claimed_at'] as String)
+          : null,
+      claimMessage: json['claim_message'] as String?,
+      completedAt: json['completed_at'] != null
+          ? DateTime.parse(json['completed_at'] as String)
+          : null,
     );
   }
 
-  Map<String, dynamic> toInsertJson() {
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
+      'inventory_item_id': inventoryItemId,
       'restaurant_id': restaurantId,
-      'item_name': itemName,
+      'title': title,
+      'description': description,
       'quantity': quantity,
-      'unit': unit,
-      'pickup_location': pickupLocation,
-      'best_before': bestBefore?.toIso8601String(),
-      'notes': notes,
+      'expiry_date': expiryDate.toIso8601String().split('T')[0],
+      'status': status,
+      'posted_at': postedAt.toIso8601String(),
+      'claimed_by': claimedBy,
+      'claimed_at': claimedAt?.toIso8601String(),
+      'claim_message': claimMessage,
+      'completed_at': completedAt?.toIso8601String(),
     };
   }
 }
@@ -58,19 +74,21 @@ class DonationClaim {
   final String id;
   final String donationId;
   final String ngoId;
-  final String claimStatus; // pending, approved, rejected, picked_up, cancelled
-  final String? message;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String? claimMessage;
+  final String status;
+  final DateTime claimedAt;
+  final DateTime? approvedAt;
+  final DateTime? rejectedAt;
 
   DonationClaim({
     required this.id,
     required this.donationId,
     required this.ngoId,
-    required this.claimStatus,
-    required this.message,
-    required this.createdAt,
-    required this.updatedAt,
+    this.claimMessage,
+    required this.status,
+    required this.claimedAt,
+    this.approvedAt,
+    this.rejectedAt,
   });
 
   factory DonationClaim.fromJson(Map<String, dynamic> json) {
@@ -78,19 +96,29 @@ class DonationClaim {
       id: json['id'] as String,
       donationId: json['donation_id'] as String,
       ngoId: json['ngo_id'] as String,
-      claimStatus: json['claim_status'] as String,
-      message: json['message'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      claimMessage: json['claim_message'] as String?,
+      status: json['status'] as String,
+      claimedAt: DateTime.parse(json['claimed_at'] as String),
+      approvedAt: json['approved_at'] != null
+          ? DateTime.parse(json['approved_at'] as String)
+          : null,
+      rejectedAt: json['rejected_at'] != null
+          ? DateTime.parse(json['rejected_at'] as String)
+          : null,
     );
   }
 
-  Map<String, dynamic> toInsertJson() {
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'donation_id': donationId,
       'ngo_id': ngoId,
-      'claim_status': claimStatus,
-      'message': message,
+      'claim_message': claimMessage,
+      'status': status,
+      'claimed_at': claimedAt.toIso8601String(),
+      'approved_at': approvedAt?.toIso8601String(),
+      'rejected_at': rejectedAt?.toIso8601String(),
     };
   }
 }
+

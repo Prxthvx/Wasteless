@@ -1,22 +1,22 @@
 class InventoryItem {
   final String id;
-  final String ownerId;
+  final String restaurantId;
   final String name;
-  final double quantity;
-  final String unit;
-  final DateTime? expiryDate;
-  final String? notes;
+  final String quantity;
+  final String category;
+  final DateTime expiryDate;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   InventoryItem({
     required this.id,
-    required this.ownerId,
+    required this.restaurantId,
     required this.name,
     required this.quantity,
-    required this.unit,
+    required this.category,
     required this.expiryDate,
-    required this.notes,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,25 +24,29 @@ class InventoryItem {
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
       id: json['id'] as String,
-      ownerId: json['owner_id'] as String,
+      restaurantId: json['restaurant_id'] as String,
       name: json['name'] as String,
-      quantity: (json['quantity'] as num).toDouble(),
-      unit: json['unit'] as String,
-      expiryDate: json['expiry_date'] != null ? DateTime.parse(json['expiry_date'] as String) : null,
-      notes: json['notes'] as String?,
+      quantity: json['quantity'] as String,
+      category: json['category'] as String,
+      expiryDate: DateTime.parse(json['expiry_date'] as String),
+      status: json['status'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  Map<String, dynamic> toInsertJson() {
+  Map<String, dynamic> toJson() {
     return {
-      'owner_id': ownerId,
+      'id': id,
+      'restaurant_id': restaurantId,
       'name': name,
       'quantity': quantity,
-      'unit': unit,
-      'expiry_date': expiryDate?.toIso8601String(),
-      'notes': notes,
+      'category': category,
+      'expiry_date': expiryDate.toIso8601String().split('T')[0],
+      'status': status,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }
+

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/user_profile.dart';
+import '../../services/notification_service.dart';
 import '../dashboard/restaurant_dashboard.dart';
 import '../dashboard/ngo_dashboard.dart';
 
@@ -105,6 +106,25 @@ class _DemoRolePickerScreenState extends State<DemoRolePickerScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text('Enter Demo'),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await NotificationService.showDemoNotification();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Demo notification sent! Check your device notifications.'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.notifications),
+                label: const Text('Test Notifications'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.green,
+                  side: const BorderSide(color: Colors.green),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               )
             ],
           ),
@@ -113,3 +133,4 @@ class _DemoRolePickerScreenState extends State<DemoRolePickerScreen> {
     );
   }
 }
+
