@@ -21,11 +21,30 @@ class WelcomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
-                // App Icon and Title
-                const Icon(
-                  Icons.recycling,
-                  size: 100,
-                  color: Colors.white,
+                // Custom Logo
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/logo.jpeg',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -104,7 +123,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -126,6 +145,22 @@ class WelcomeScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushNamed('/demo'),
+                      child: const Text(
+                        'Try demo (no signup)',
+                        style: TextStyle(color: Colors.white, fontSize: 16, decoration: TextDecoration.underline),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushNamed('/debug'),
+                      child: const Text(
+                        'Debug Database',
+                        style: TextStyle(color: Colors.orange, fontSize: 14, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],

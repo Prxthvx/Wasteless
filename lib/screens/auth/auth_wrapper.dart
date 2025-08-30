@@ -74,10 +74,43 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _isLoading = false;
       });
     } catch (e) {
-      // Profile not found, user needs to complete signup
-      setState(() {
-        _isLoading = false;
-      });
+      // Profile not found, create one automatically
+      try {
+        final user = SupabaseService.client.auth.currentUser;
+        if (user != null) {
+          await SupabaseService.client
+              .from('profiles')
+              .insert({
+                'id': user.id,
+                'name': user.email?.split('@')[0] ?? 'User',
+                'role': 'restaurant', // Default to restaurant
+                'location': 'Unknown',
+                'email': user.email ?? '',
+              });
+
+          // Fetch the newly created profile
+          final newResponse = await SupabaseService.client
+              .from('profiles')
+              .select()
+              .eq('id', userId)
+              .single();
+
+          final newProfile = UserProfile.fromJson(newResponse);
+          setState(() {
+            _profile = newProfile;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } catch (profileError) {
+        // If profile creation fails, still show welcome screen
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
