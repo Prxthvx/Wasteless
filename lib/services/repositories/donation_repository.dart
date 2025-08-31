@@ -84,5 +84,28 @@ class DonationRepository {
         .single();
     return Donation.fromJson(Map<String, dynamic>.from(data));
   }
+
+  Future<Donation> postDonation({
+    required String restaurantId,
+    required String title,
+    String? description,
+    required String quantity,
+    required DateTime expiryDate,
+  }) async {
+    final payload = {
+      'restaurant_id': restaurantId,
+      'title': title,
+      'description': description,
+      'quantity': quantity,
+      'expiry_date': expiryDate.toIso8601String().split('T')[0],
+      'status': 'available',
+    };
+    final data = await _client
+        .from('donations')
+        .insert(payload)
+        .select()
+        .single();
+    return Donation.fromJson(Map<String, dynamic>.from(data));
+  }
 }
 
