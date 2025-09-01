@@ -3,6 +3,7 @@ import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/donation.dart';
 import '../../services/repositories/donation_repository.dart';
+import '../../services/supabase_service.dart';
 
 class NGODashboard extends StatefulWidget {
   final UserProfile profile;
@@ -123,6 +124,10 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         title: Text('${widget.profile.name} Dashboard'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => _showDrawer(),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
@@ -157,6 +162,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
           _buildImpactTab(),
         ],
       ),
+      drawer: _buildDrawer(),
     );
   }
 
@@ -1081,6 +1087,179 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
     showDialog(
       context: context,
       builder: (context) => SettingsDialog(profile: widget.profile),
+    );
+  }
+
+  void _showDrawer() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Menu'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: Text('Profile: ${widget.profile.name}'),
+              subtitle: Text(widget.profile.role.toUpperCase()),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showNotifications();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showSettings();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+              onTap: () => _signOut(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await SupabaseService.client.auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/welcome');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing out: $e')),
+      );
+    }
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Colors.blue,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.favorite,
+                  color: Colors.white,
+                  size: 48,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.profile.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  widget.profile.role.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dashboard),
+            title: const Text('Overview'),
+            selected: _tabController.index == 0,
+            onTap: () {
+              _tabController.animateTo(0);
+              Navigator.of(context).pop();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.map),
+            title: const Text('Discover'),
+            selected: _tabController.index == 1,
+            onTap: () {
+              _tabController.animateTo(1);
+              Navigator.of(context).pop();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: const Text('Available'),
+            selected: _tabController.index == 2,
+            onTap: () {
+              _tabController.animateTo(2);
+              Navigator.of(context).pop();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('My Claims'),
+            selected: _tabController.index == 3,
+            onTap: () {
+              _tabController.animateTo(3);
+              Navigator.of(context).pop();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.analytics),
+            title: const Text('Impact'),
+            selected: _tabController.index == 4,
+            onTap: () {
+              _tabController.animateTo(4);
+              Navigator.of(context).pop();
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.notifications),
+            title: const Text('Notifications'),
+            onTap: () {
+              Navigator.of(context).pop();
+              _showNotifications();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.of(context).pop();
+              _showSettings();
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.of(context).pop();
+              _signOut();
+            },
+          ),
+        ],
+      ),
     );
   }
 }
