@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/inventory_item.dart';
 import '../../models/donation.dart';
@@ -1285,6 +1286,30 @@ class SettingsDialog extends StatelessWidget {
           Text('Location: ${profile.location}'),
           const SizedBox(height: 16),
           const Text('Settings options would go here'),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            label: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: const Size.fromHeight(40),
+            ),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Sign out using Supabase
+              try {
+                // Import SupabaseService at the top if not already
+                // import '../../services/supabase_service.dart';
+                await SupabaseService.client.auth.signOut();
+                // Navigate to welcome/login screen
+                Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Sign out failed: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+          ),
         ],
       ),
       actions: [

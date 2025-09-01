@@ -16,6 +16,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _orgNameController = TextEditingController();
   final _locationController = TextEditingController();
   final _phoneController = TextEditingController();
 
@@ -32,6 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nameController.dispose();
+    _orgNameController.dispose();
     _locationController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -56,6 +58,7 @@ class _SignupScreenState extends State<SignupScreen> {
             .insert({
               'id': response.user!.id,
               'name': _nameController.text.trim(),
+              'org_name': _orgNameController.text.trim(),
               'role': _selectedRole,
               'location': _locationController.text.trim(),
               'email': _emailController.text.trim(),
@@ -142,6 +145,18 @@ class _SignupScreenState extends State<SignupScreen> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) => v == null || v.isEmpty ? 'Please enter your name' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Organization/Restaurant Name
+              TextFormField(
+                controller: _orgNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Organization/Restaurant Name',
+                  prefixIcon: Icon(Icons.business),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v == null || v.isEmpty ? 'Please enter the NGO or restaurant name' : null,
               ),
               const SizedBox(height: 16),
 
