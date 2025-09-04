@@ -61,6 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
               'org_name': _orgNameController.text.trim(),
               'role': _selectedRole,
               'location': _locationController.text.trim(),
+              'phone_number': _phoneController.text.trim(),
               'email': _emailController.text.trim(),
             });
 

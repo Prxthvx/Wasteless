@@ -22,7 +22,6 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Spacer(),
                   // Custom Logo
                   Container(
                     width: 120,
@@ -97,7 +96,6 @@ class WelcomeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Spacer(),
                   // Action Buttons
                   Column(
                     children: [
@@ -155,14 +153,6 @@ class WelcomeScreen extends StatelessWidget {
                         child: const Text(
                           'Try demo (no signup)',
                           style: TextStyle(color: Colors.white, fontSize: 16, decoration: TextDecoration.underline),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pushNamed('/debug'),
-                        child: const Text(
-                          'Debug Database',
-                          style: TextStyle(color: Colors.orange, fontSize: 14, decoration: TextDecoration.underline),
                         ),
                       ),
                     ],
