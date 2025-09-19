@@ -2,7 +2,7 @@
 
 This document outlines the authentication system implementation for the WasteLess app.
 
-## 🎯 Features Implemented
+## Features Implemented
 
 ### ✅ Authentication System
 - **Login Screen**: Email + password authentication with Supabase
