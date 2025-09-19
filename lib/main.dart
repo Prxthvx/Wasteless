@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/test_screen.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
           initialRoute: '/',
                       routes: {
               '/': (context) => const AuthWrapper(),
+              '/test': (context) => const TestScreen(),
               '/welcome': (context) => const WelcomeScreen(),
               '/login': (context) => const LoginScreen(),
               '/signup': (context) => const SignupScreen(),

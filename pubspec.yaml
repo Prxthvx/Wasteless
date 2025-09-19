@@ -54,7 +54,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/logo.png
+    - assets/images/logo.jpeg
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
@@ -83,3 +83,26 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  # Example for AuthWrapper
+  # filepath: d:\Wasteless\lib\screens\auth\auth_wrapper.dart
+  # import 'package:flutter/material.dart';
+  #
+  # class AuthWrapper extends StatelessWidget {
+  #   const AuthWrapper({super.key});
+  #
+  #   @override
+  #   Widget build(BuildContext context) {
+  #     return Scaffold(
+  #       body: Center(
+  #         child: Column(
+  #           mainAxisSize: MainAxisSize.min,
+  #           children: [
+  #             Image.asset('assets/images/logo.jpeg'), // Asset must exist!
+  #             const Text('Welcome to WasteLess'),
+  #           ],
+  #         ),
+  #       ),
+  #     );
+  #   }
+  # }
