@@ -21,6 +21,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const SizedBox(height: 32),
                 // Custom Logo
                 Container(
                   width: 120,
@@ -36,17 +37,13 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
                       width: 120,
                       height: 120,
-                      color: Colors.green,
-                      child: const Icon(
-                        Icons.recycling,
-                        size: 60,
-                        color: Colors.white,
-                      ),
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
                 ),
