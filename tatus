@@ -1,0 +1,27 @@
+[33m7204ac9[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #10 from Prxthvx/adding-logo
+[33me967038[m Adding the logo finally
+[33meb33a65[m Merge pull request #9 from Prxthvx/add-restaurant-ngo-name
+[33mdf23879[m Merge branch 'main' into add-restaurant-ngo-name
+[33m2db5f9d[m added restaurant name and NGo name at signup and sign out option in settings dialog
+[33m60ee712[m Merge pull request #8 from Prxthvx/prithvi
+[33m6a1d2f1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mprithvi[m[33m, [m[1;31morigin/prithvi[m[33m)[m Fixed Inventory item adding feature
+[33mc57ab7a[m Merge pull request #7 from Prxthvx/prithvi
+[33m0a3f88f[m logout button
+[33m5e508ff[m Merge pull request #5 from Prxthvx/prithvi
+[33md2617a2[m Fixed login issue and Inventory issue
+[33mb38c887[m Merge pull request #4 from Prxthvx/prithvi
+[33m958201d[m Restaurant and NGO dashboards created, Logo replaced, Notifications added not sure if working.
+[33md1ab774[m Merge branch 'main' of https://github.com/Prxthvx/Wasteless into prithvi
+[33m8c32ddf[m My local changes
+[33m6f70d85[m readme changes
+[33mecd70ec[m Added Phone number to Sign up screen also to the database
+[33md124e31[m Merge remote-tracking branch 'origin/allen' into prithvi
+[33mb9ba18e[m Minor debug changes in signup_screen.dart
+[33m6becc11[m Database linking completed
+[33m87056a7[m Login and Signup page
+[33mb21fadd[m Refactored code in Signup and login_screen dart files to handle navigation but authwrapp
+[33mabe706a[m Merge pull request #2 from Prxthvx/prithvi
+[33m5ba664f[m[33m ([m[1;31morigin/allen-clean[m[33m)[m Merge pull request #1 from Prxthvx/main
+[33m79d85ef[m Signup/Login
+[33mf7e6b09[m Resolved merge conflict in README.md
+[33ma78de7e[m Initial Flutter skeleton skin with Supabase Setup

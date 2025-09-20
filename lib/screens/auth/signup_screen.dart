@@ -71,7 +71,7 @@ class _SignupScreenState extends State<SignupScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pushReplacementNamed('/welcome');
+          Navigator.of(context).pushReplacementNamed('/');
         }
       } catch (profileError) {
         // If profile creation fails, still show success but warn about profile
@@ -82,7 +82,7 @@ class _SignupScreenState extends State<SignupScreen> {
               backgroundColor: Colors.orange,
             ),
           );
-          Navigator.of(context).pushReplacementNamed('/welcome');
+          Navigator.of(context).pushReplacementNamed('/');
         }
       }
     }
