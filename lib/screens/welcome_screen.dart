@@ -18,11 +18,10 @@ class WelcomeScreen extends StatelessWidget {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 32),
                   // Custom Logo
                   Container(
                     width: 120,
@@ -40,11 +39,10 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: Image.asset(
-                        'assets/images/logo.jpeg',
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
+                      child: Icon(
+                        Icons.recycling,
+                        size: 60,
+                        color: Colors.green,
                       ),
                     ),
                   ),
@@ -173,7 +171,6 @@ class WelcomeScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }
