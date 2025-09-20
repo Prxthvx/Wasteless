@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
+// import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/donation.dart';
 import '../../services/repositories/donation_repository.dart';
 import '../../services/supabase_service.dart';
+import 'components/nd_view_map.dart'; // Add this import
 
 class NGODashboard extends StatefulWidget {
   final UserProfile profile;
@@ -53,13 +54,42 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         _availableDonations = _getMockAvailableDonations();
         _claimedDonations = _getMockClaimedDonations();
       } else {
+        print('[NGODashboard] Fetching available donations...');
         _availableDonations = await _donationRepo.listAvailableDonations();
+        print('[NGODashboard] Available donations: ${_availableDonations.length}');
+        // Ensure restaurantProfile is populated for each donation
+        for (int i = 0; i < _availableDonations.length; i++) {
+          final donation = _availableDonations[i];
+          if (donation.restaurantProfile == null && donation.restaurantId.isNotEmpty) {
+            // Try to assign from profiles field if present
+            final profilesField = (donation as dynamic).profiles;
+            if (profilesField != null) {
+              _availableDonations[i] = Donation(
+                id: donation.id,
+                inventoryItemId: donation.inventoryItemId,
+                restaurantId: donation.restaurantId,
+                title: donation.title,
+                description: donation.description,
+                quantity: donation.quantity,
+                expiryDate: donation.expiryDate,
+                status: donation.status,
+                postedAt: donation.postedAt,
+                claimedBy: donation.claimedBy,
+                claimedAt: donation.claimedAt,
+                claimMessage: donation.claimMessage,
+                completedAt: donation.completedAt,
+                restaurantProfile: UserProfile.fromJson(Map<String, dynamic>.from(profilesField)),
+              );
+            }
+          }
+        }
         _claimedDonations = await _donationRepo.listMyClaimedDonations(widget.profile.id);
+        print('[NGODashboard] Claimed donations: ${_claimedDonations.length}');
       }
-      
       // Calculate real-time analytics
       _calculateAnalytics();
     } catch (e) {
+      print('[NGODashboard] Error loading data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading data: $e')),
       );
@@ -752,34 +782,8 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Map View Placeholder
-          Card(
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.map, size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text(
-                      'Interactive Map View',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Shows nearby restaurants and available donations',
-                      style: TextStyle(color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          // Map Overview
+          NDViewMap(donations: _availableDonations),
           const SizedBox(height: 16),
 
           // Search and Filters

@@ -1,3 +1,5 @@
+import 'user_profile.dart';
+
 class Donation {
   final String id;
   final String? inventoryItemId;
@@ -12,6 +14,7 @@ class Donation {
   final DateTime? claimedAt;
   final String? claimMessage;
   final DateTime? completedAt;
+  final UserProfile? restaurantProfile;
 
   Donation({
     required this.id,
@@ -27,28 +30,35 @@ class Donation {
     this.claimedAt,
     this.claimMessage,
     this.completedAt,
+    this.restaurantProfile,
   });
 
   factory Donation.fromJson(Map<String, dynamic> json) {
-    return Donation(
-      id: json['id'] as String,
-      inventoryItemId: json['inventory_item_id'] as String?,
-      restaurantId: json['restaurant_id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String?,
-      quantity: json['quantity'] as String,
-      expiryDate: DateTime.parse(json['expiry_date'] as String),
-      status: json['status'] as String,
-      postedAt: DateTime.parse(json['posted_at'] as String),
-      claimedBy: json['claimed_by'] as String?,
-      claimedAt: json['claimed_at'] != null
-          ? DateTime.parse(json['claimed_at'] as String)
-          : null,
-      claimMessage: json['claim_message'] as String?,
-      completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
-          : null,
-    );
+    try {
+      return Donation(
+        id: json['id'] as String,
+        inventoryItemId: json['inventory_item_id'] as String?,
+        restaurantId: json['restaurant_id'] as String,
+        title: json['title'] as String,
+        description: json['description'] as String?,
+        quantity: json['quantity'] as String,
+        expiryDate: DateTime.parse(json['expiry_date'] as String),
+        status: json['status'] as String,
+        postedAt: DateTime.parse(json['posted_at'] as String),
+        claimedBy: json['claimed_by'] as String?,
+        claimedAt: json['claimed_at'] != null
+            ? DateTime.parse(json['claimed_at'] as String)
+            : null,
+        claimMessage: json['claim_message'] as String?,
+        completedAt: json['completed_at'] != null
+            ? DateTime.parse(json['completed_at'] as String)
+            : null,
+        restaurantProfile: json['profiles'] != null ? UserProfile.fromJson(json['profiles'] as Map<String, dynamic>) : null,
+      );
+    } catch (e) {
+      print('[Donation.fromJson] Error parsing donation: $json\nError: $e');
+      throw FormatException('Error parsing Donation: $e');
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -66,6 +76,7 @@ class Donation {
       'claimed_at': claimedAt?.toIso8601String(),
       'claim_message': claimMessage,
       'completed_at': completedAt?.toIso8601String(),
+      'profiles': restaurantProfile?.toJson(),
     };
   }
 }
