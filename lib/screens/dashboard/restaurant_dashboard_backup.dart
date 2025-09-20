@@ -611,6 +611,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
             },
           ),
         ),
+        ),
       ],
     );
   }
