@@ -7,6 +7,7 @@ import '../../services/repositories/inventory_repository.dart';
 import '../../services/repositories/donation_repository.dart';
 import '../../services/supabase_service.dart';
 import '../scanner.dart';
+import '../../services/product_lookup.dart';
 
 
 class RestaurantDashboard extends StatefulWidget {
@@ -1201,24 +1202,54 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
       ),
       actions: [
   // 👇 New button for Barcode Scanner
-  TextButton.icon(
+TextButton.icon(
   icon: const Icon(Icons.qr_code_scanner),
   label: const Text('Use Barcode'),
   onPressed: () async {
+    // 1) open scanner → returns raw barcode (string)
     final scannedCode = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const Scanner(),
-      ),
+      MaterialPageRoute(builder: (_) => const Scanner()),
     );
 
-    if (scannedCode != null) {
+    if (scannedCode == null) return; // user closed scanner
+
+    // 2) show a loading spinner while we fetch details
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // 3) call our fetchProductDetails (from product_lookup.dart)
+    final details = await fetchProductDetails(scannedCode.toString());
+
+    // 4) close the loading spinner
+    if (Navigator.canPop(context)) Navigator.pop(context);
+
+    // 5) if found → auto-fill fields
+    if (details != null) {
       setState(() {
-        _nameCtrl.text = scannedCode; // fill Item Name with scanned value
+        _nameCtrl.text = details["name"] ?? "";
+        _quantityCtrl.text = details["quantity"] ?? "";
+        _category = details["category"] ?? _category;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product information filled from barcode')),
+      );
+    } else {
+      // not found → let user type manually
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product not found. Please fill manually.')),
+      );
+      // optional: at least show the raw code in Item Name
+      setState(() {
+        _nameCtrl.text = scannedCode.toString();
       });
     }
   },
 ),
+
 
   TextButton(
     onPressed: () => Navigator.of(context).pop(),
