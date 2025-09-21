@@ -6,6 +6,8 @@ import '../../services/repositories/inventory_repository.dart';
 import '../../services/repositories/donation_repository.dart';
 import '../../services/supabase_service.dart';
 import '../../services/recipe_api_service.dart';
+import '../scanner_screen.dart';
+import '../../services/barcode_lookup_service.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   final UserProfile profile;
@@ -3893,73 +3895,121 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
     super.dispose();
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Add Inventory Item'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Item Name',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _quantityCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Quantity (e.g., 5 kg, 10 units)',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _category,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Fruits', child: Text('Fruits')),
-                DropdownMenuItem(value: 'Vegetables', child: Text('Vegetables')),
-                DropdownMenuItem(value: 'Dairy', child: Text('Dairy')),
-                DropdownMenuItem(value: 'Bread & Pastries', child: Text('Bread & Pastries')),
-                DropdownMenuItem(value: 'Canned Goods', child: Text('Canned Goods')),
-                DropdownMenuItem(value: 'Frozen Foods', child: Text('Frozen Foods')),
-                DropdownMenuItem(value: 'Other', child: Text('Other')),
-              ],
-              onChanged: (value) => setState(() => _category = value ?? 'Fruits'),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Expiry Date: ${_expiryDate.toString().split(' ')[0]}'),
+      content: SingleChildScrollView( // ✅ prevents overflow
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Item Name',
+                  border: OutlineInputBorder(),
                 ),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _expiryDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (picked != null) {
-                      setState(() => _expiryDate = picked);
-                    }
-                  },
-                  child: const Text('Pick Date'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _quantityCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Quantity (e.g., 5 kg, 10 units)',
+                  border: OutlineInputBorder(),
                 ),
-              ],
-            ),
-          ],
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _category,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Fruits', child: Text('Fruits')),
+                  DropdownMenuItem(value: 'Vegetables', child: Text('Vegetables')),
+                  DropdownMenuItem(value: 'Dairy', child: Text('Dairy')),
+                  DropdownMenuItem(value: 'Bread & Pastries', child: Text('Bread & Pastries')),
+                  DropdownMenuItem(value: 'Canned Goods', child: Text('Canned Goods')),
+                  DropdownMenuItem(value: 'Frozen Foods', child: Text('Frozen Foods')),
+                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _category = value ?? 'Fruits'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                        'Expiry Date: ${_expiryDate.toString().split(' ')[0]}'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _expiryDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setState(() => _expiryDate = picked);
+                      }
+                    },
+                    child: const Text('Pick Date'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 👇 Scan Barcode button
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ScannerScreen(
+                        onScanned: (code) async {
+                          final product = await BarcodeLookupService.fetchProductFromBarcode(code);
+
+                          setState(() {
+                            _nameCtrl.text = product['name'] ?? "Unknown Product";
+                            _quantityCtrl.text = product['quantity'] ?? "1";
+
+                            // ✅ Only allow known categories
+                            final apiCategory = product['category'] ?? "Other";
+                            const allowedCategories = [
+                              'Fruits',
+                              'Vegetables',
+                              'Dairy',
+                              'Bread & Pastries',
+                              'Canned Goods',
+                              'Frozen Foods',
+                              'Other',
+                            ];
+
+                            if (allowedCategories.contains(apiCategory)) {
+                              _category = apiCategory;
+                            } else {
+                              _category = "Other";
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text("Scan Barcode"),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -3981,7 +4031,7 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
               );
-              
+
               try {
                 await widget.onItemAdded(newItem);
                 Navigator.of(context).pop();
