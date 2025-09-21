@@ -292,7 +292,7 @@ class OverviewTab extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                claim.title ?? '',
+                                claim.title,
                                 style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               Text(
