@@ -41,12 +41,12 @@ class DonationRepository {
   Future<DonationClaim> claimDonation({
     required String donationId,
     required String ngoId,
-    String? message,
+    String? claimMessage,
   }) async {
     final payload = {
       'donation_id': donationId,
       'ngo_id': ngoId,
-      'message': message,
+      if (claimMessage != null) 'claim_message': claimMessage,
     };
     final data = await _client
         .from('donation_claims')
@@ -87,14 +87,23 @@ class DonationRepository {
     return claimedDonations;
   }
 
-  Future<Donation> updateDonationStatus(String donationId, String status) async {
-    final data = await _client
+  Future<void> updateDonationStatus({
+    required String donationId,
+    required String status,
+    String? claimedBy,
+    DateTime? claimedAt,
+    String? claimMessage,
+  }) async {
+    final updateData = <String, dynamic>{
+      'status': status,
+    };
+    if (claimedBy != null) updateData['claimed_by'] = claimedBy;
+    if (claimedAt != null) updateData['claimed_at'] = claimedAt.toIso8601String();
+    if (claimMessage != null) updateData['claim_message'] = claimMessage;
+    await _client
         .from('donations')
-        .update({'status': status})
-        .eq('id', donationId)
-        .select()
-        .single();
-    return Donation.fromJson(Map<String, dynamic>.from(data));
+        .update(updateData)
+        .eq('id', donationId);
   }
 
   Future<Donation?> postDonation({
