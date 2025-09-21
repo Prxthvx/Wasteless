@@ -20,6 +20,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const SizedBox(height: 32),
                 // Custom Logo
                 Container(
                   width: 120,
@@ -35,18 +36,13 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                  child: ClipOval(
                     child: Image.asset(
-                      'assets/images/logo.jpeg',
+                      'assets/images/logo.png',
+                      width: 120,
+                      height: 120,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.restaurant,
-                          size: 60,
-                          color: Colors.green,
-                        );
-                      },
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
                 ),
@@ -68,10 +64,10 @@ class WelcomeScreen extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 48),
                 // Mission Statement
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
@@ -81,17 +77,17 @@ class WelcomeScreen extends StatelessWidget {
                       Text(
                         'Join the fight against food waste',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 12),
                       Text(
                         'Connect restaurants with NGOs to reduce food waste and help those in need.',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           color: Colors.white,
                         ),
                         textAlign: TextAlign.center,

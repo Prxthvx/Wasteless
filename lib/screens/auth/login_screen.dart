@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,12 +16,43 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('remembered_email');
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+    
+    if (savedEmail != null && rememberMe) {
+      setState(() {
+        _emailController.text = savedEmail;
+        _rememberMe = rememberMe;
+      });
+    }
+  }
+
+  Future<void> _saveEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('remembered_email', _emailController.text.trim());
+      await prefs.setBool('remember_me', true);
+    } else {
+      await prefs.remove('remembered_email');
+      await prefs.remove('remember_me');
+    }
   }
 
   Future<void> _login() async {
@@ -35,6 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null && mounted) {
+        // Save email if remember me is checked
+        await _saveEmail();
+        
         // User is authenticated, proceed to dashboard
         // The AuthWrapper will handle profile creation if needed
         Navigator.of(context).pushReplacementNamed('/');
@@ -122,6 +157,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   border: const OutlineInputBorder(),
                 ),
                 validator: (v) => v == null || v.isEmpty ? 'Please enter your password' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Remember Me checkbox
+              Row(
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    onChanged: (value) => setState(() => _rememberMe = value ?? false),
+                    activeColor: Colors.green,
+                  ),
+                  const Text('Remember my email'),
+                ],
               ),
               const SizedBox(height: 24),
 

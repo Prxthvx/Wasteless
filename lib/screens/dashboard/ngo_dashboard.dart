@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
+// import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/donation.dart';
 import '../../services/repositories/donation_repository.dart';
 import '../../services/supabase_service.dart';
+import 'components/nd_view_map.dart'; // Add this import
 
 class NGODashboard extends StatefulWidget {
   final UserProfile profile;
@@ -23,12 +24,12 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   bool _isLoading = true;
 
   // Analytics data
-  final Map<String, dynamic> _analytics = {
-    'totalDonationsClaimed': 67,
-    'peopleHelped': 234,
-    'foodRescued': 890, // kg
-    'activeClaims': 3,
-    'restaurantsConnected': 12,
+  Map<String, dynamic> _analytics = {
+    'totalDonationsClaimed': 0,
+    'peopleHelped': 0,
+    'foodRescued': 0, // kg
+    'activeClaims': 0,
+    'restaurantsConnected': 0,
   };
 
   @override
@@ -53,16 +54,52 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         _availableDonations = _getMockAvailableDonations();
         _claimedDonations = _getMockClaimedDonations();
       } else {
+        print('[NGODashboard] Fetching available donations...');
         _availableDonations = await _donationRepo.listAvailableDonations();
+        print('[NGODashboard] Available donations: ${_availableDonations.length}');
         _claimedDonations = await _donationRepo.listMyClaimedDonations(widget.profile.id);
+        print('[NGODashboard] Claimed donations: ${_claimedDonations.length}');
       }
+      // Calculate real-time analytics
+      _calculateAnalytics();
     } catch (e) {
+      print('[NGODashboard] Error loading data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading data: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _calculateAnalytics() {
+    // Calculate analytics based on actual data
+    int totalDonationsClaimed = _claimedDonations.length;
+    int activeClaims = _claimedDonations.where((d) => d.status == 'claimed').length;
+    double foodRescued = 0;
+    int peopleHelped = 0;
+    Set<String> restaurantsConnected = {};
+
+    // Calculate food rescued and people helped from claimed donations
+    for (final donation in _claimedDonations) {
+      // Parse quantity string to double
+      final quantityStr = donation.quantity.replaceAll(RegExp(r'[^\d.]'), '');
+      final quantity = double.tryParse(quantityStr) ?? 0.0;
+      
+      foodRescued += quantity;
+      peopleHelped += (quantity / 2).round(); // Estimate people helped
+      restaurantsConnected.add(donation.restaurantId);
+    }
+
+    setState(() {
+      _analytics = {
+        'totalDonationsClaimed': totalDonationsClaimed,
+        'peopleHelped': peopleHelped,
+        'foodRescued': foodRescued.round(),
+        'activeClaims': activeClaims,
+        'restaurantsConnected': restaurantsConnected.length,
+      };
+    });
   }
 
   List<Donation> _getMockAvailableDonations() {
@@ -171,6 +208,11 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       return const Center(child: CircularProgressIndicator());
     }
 
+    final availableDonations = _availableDonations.length;
+    final activeClaims = _analytics['activeClaims'];
+    final totalClaims = _claimedDonations.length;
+    final foodRescued = _analytics['foodRescued'];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -178,85 +220,112 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         children: [
           // Welcome Card
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                                   Text(
-                   'NGO Dashboard',
-                   style: Theme.of(context).textTheme.headlineSmall,
-                 ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'You\'re helping reduce food waste and feed those in need.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
+            elevation: 4,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade400, Colors.blue.shade600],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.volunteer_activism,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back, ${widget.profile.name}!',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'You\'re helping reduce food waste and feed those in need.',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildQuickStat('Available Donations', '$availableDonations', Icons.favorite),
+                        const SizedBox(width: 16),
+                        _buildQuickStat('Active Claims', '$activeClaims', Icons.check_circle),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Quick Stats
-          Row(
+          // Stats Grid
+          Text(
+            'Dashboard Overview',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.2,
             children: [
-              Expanded(child: _buildStatCard('Available Donations', '${_availableDonations.length}', Icons.favorite, Colors.red)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildStatCard('Active Claims', '${_analytics['activeClaims']}', Icons.check_circle, Colors.blue)),
+              _buildClickableStatCard('Available Donations', '$availableDonations', Icons.favorite, Colors.red, () => _tabController.animateTo(2)), // Navigate to Available
+              _buildClickableStatCard('Active Claims', '$activeClaims', Icons.check_circle, Colors.blue, () => _tabController.animateTo(3)), // Navigate to My Claims
+              _buildClickableStatCard('Total Claims', '$totalClaims', Icons.history, Colors.purple, () => _tabController.animateTo(3)), // Navigate to My Claims
+              _buildClickableStatCard('Food Rescued', '${foodRescued}kg', Icons.recycling, Colors.green, () => _tabController.animateTo(4)), // Navigate to Impact
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Impact Metrics
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Your Impact This Month',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _buildImpactMetric('Food Rescued', '${_analytics['foodRescued']} kg', Icons.recycling)),
-                      Expanded(child: _buildImpactMetric('People Helped', '${_analytics['peopleHelped']}', Icons.people)),
-                      Expanded(child: _buildImpactMetric('Restaurants', '${_analytics['restaurantsConnected']}', Icons.restaurant)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Recent Activity
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recent Activity',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  if (_claimedDonations.isNotEmpty) ...[
-                    _buildActivityItem('Donation claimed', 'Canned Goods claimed from Restaurant 4', DateTime.now().subtract(const Duration(hours: 6))),
-                    _buildActivityItem('New donation available', 'Fresh Vegetables available nearby', DateTime.now().subtract(const Duration(hours: 2))),
-                  ] else ...[
-                    const Text('No recent activity'),
-                  ],
-                ],
-              ),
+          Text(
+            'Recent Activity',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(height: 12),
+          _buildRecentActivityCard(),
+          const SizedBox(height: 20),
+
+          // Quick Actions
+          Text(
+            'Quick Actions',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickActionsCard(),
         ],
       ),
     );
@@ -280,6 +349,328 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClickableStatCard(String title, String value, IconData icon, Color color, VoidCallback onTap) {
+    return Card(
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: color.withOpacity(0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStat(String label, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentActivityCard() {
+    final recentClaims = _claimedDonations.take(3).toList();
+    final recentAvailable = _availableDonations.take(2).toList();
+    
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.history, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: () => _tabController.animateTo(3), // Navigate to My Claims
+                  child: Text(
+                    'View All',
+                    style: TextStyle(
+                      color: Colors.blue[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (recentClaims.isEmpty && recentAvailable.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No recent activity. Start by claiming donations!',
+                  style: TextStyle(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else ...[
+              // Show recent claims
+              if (recentClaims.isNotEmpty) ...[
+                Text(
+                  'Recent Claims',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...recentClaims.map((claim) => InkWell(
+                  onTap: () => _tabController.animateTo(3), // Navigate to My Claims
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.green.shade100,
+                          child: Icon(Icons.check_circle, size: 16, color: Colors.green),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                claim.title,
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                '${claim.quantity} • ${claim.status}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey[400]),
+                      ],
+                    ),
+                  ),
+                )).toList(),
+              ],
+              
+              // Show recent available donations
+              if (recentAvailable.isNotEmpty) ...[
+                if (recentClaims.isNotEmpty) const SizedBox(height: 16),
+                Text(
+                  'New Donations Available',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...recentAvailable.map((donation) => InkWell(
+                  onTap: () => _tabController.animateTo(2), // Navigate to Available
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.red.shade100,
+                          child: Icon(Icons.favorite, size: 16, color: Colors.red),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                donation.title,
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                '${donation.quantity} • ${donation.status}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey[400]),
+                      ],
+                    ),
+                  ),
+                )).toList(),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsCard() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.flash_on, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    'Discover Donations',
+                    Icons.map,
+                    Colors.blue,
+                    () => _tabController.animateTo(1), // Navigate to Discover
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    'View Available',
+                    Icons.favorite,
+                    Colors.red,
+                    () => _tabController.animateTo(2), // Navigate to Available
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    'My Claims',
+                    Icons.history,
+                    Colors.purple,
+                    () => _tabController.animateTo(3), // Navigate to My Claims
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    'View Impact',
+                    Icons.analytics,
+                    Colors.green,
+                    () => _tabController.animateTo(4), // Navigate to Impact
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -365,35 +756,27 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Map View Placeholder
-          Card(
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+          // Map Overview with controls
+          NDViewMap(donations: _availableDonations),
+          const SizedBox(height: 16),
+
+          // Refresh Button
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
               ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.map, size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text(
-                      'Interactive Map View',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Shows nearby restaurants and available donations',
-                      style: TextStyle(color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
+              onPressed: () async {
+                setState(() => _isLoading = true);
+                await _loadData();
+              },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Search and Filters
           Card(
@@ -417,40 +800,45 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            border: OutlineInputBorder(),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 180,
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'all', child: Text('All Categories')),
+                              DropdownMenuItem(value: 'vegetables', child: Text('Vegetables')),
+                              DropdownMenuItem(value: 'fruits', child: Text('Fruits')),
+                              DropdownMenuItem(value: 'dairy', child: Text('Dairy')),
+                              DropdownMenuItem(value: 'bread', child: Text('Bread & Pastries')),
+                            ],
+                            onChanged: (value) {},
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 'all', child: Text('All Categories')),
-                            DropdownMenuItem(value: 'vegetables', child: Text('Vegetables')),
-                            DropdownMenuItem(value: 'fruits', child: Text('Fruits')),
-                            DropdownMenuItem(value: 'dairy', child: Text('Dairy')),
-                            DropdownMenuItem(value: 'bread', child: Text('Bread & Pastries')),
-                          ],
-                          onChanged: (value) {},
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Distance',
-                            border: OutlineInputBorder(),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 140,
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: 'Distance',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: '5', child: Text('5 km')),
+                              DropdownMenuItem(value: '10', child: Text('10 km')),
+                              DropdownMenuItem(value: '20', child: Text('20 km')),
+                            ],
+                            onChanged: (value) {},
                           ),
-                          items: const [
-                            DropdownMenuItem(value: '5', child: Text('5 km')),
-                            DropdownMenuItem(value: '10', child: Text('10 km')),
-                            DropdownMenuItem(value: '20', child: Text('20 km')),
-                          ],
-                          onChanged: (value) {},
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -458,7 +846,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
           ),
           const SizedBox(height: 16),
 
-          // Nearby Restaurants
+          // Nearby Restaurants (from actual donations)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -470,9 +858,25 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
-                  _buildRestaurantCard('Green Garden Restaurant', '2.3 km away', '3 donations available'),
-                  _buildRestaurantCard('Fresh Market Cafe', '1.8 km away', '1 donation available'),
-                  _buildRestaurantCard('Local Bakery', '4.1 km away', '2 donations available'),
+                  ..._availableDonations
+                    .where((d) => d.restaurantProfile != null)
+                    .map((donation) {
+                      final profile = donation.restaurantProfile!;
+                      final donationCount = _availableDonations.where((d) => d.restaurantProfile?.id == profile.id).length;
+                      // Optionally, calculate distance if user's location is available
+                      String distance = profile.location;
+                      return _buildRestaurantCard(
+                        profile.name,
+                        distance,
+                        '$donationCount donation${donationCount > 1 ? 's' : ''} available',
+                      );
+                    })
+                    .toList(),
+                  if (_availableDonations.where((d) => d.restaurantProfile != null).isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text('No nearby restaurants found.', style: TextStyle(color: Colors.grey[600])),
+                    ),
                 ],
               ),
             ),
@@ -511,7 +915,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
 
     return Column(
       children: [
-        // Quick Actions
+        // Quick Actions and Refresh Button
         Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
@@ -538,6 +942,11 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                   ],
                 ),
               ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+                onPressed: _isLoading ? null : _loadData,
+              ),
             ],
           ),
         ),
@@ -549,7 +958,6 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             itemBuilder: (context, index) {
               final donation = _availableDonations[index];
               final daysUntilExpiry = donation.expiryDate.difference(DateTime.now()).inDays;
-              
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
@@ -901,6 +1309,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   void _claimDonation(Donation donation) {
+    final profile = donation.restaurantProfile;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -912,6 +1321,14 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             Text('Claim "${donation.title}"?'),
             const SizedBox(height: 16),
             const Text('This will notify the restaurant of your interest.'),
+            const SizedBox(height: 16),
+            if (profile != null) ...[
+              Text('Organization Name: ${profile.orgName ?? "Not available"}'),
+              if (profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty)
+                Text('Phone: ${profile.phoneNumber}'),
+            ] else ...[
+              Text('Restaurant details not available.'),
+            ],
           ],
         ),
         actions: [
@@ -936,6 +1353,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                   postedAt: donation.postedAt,
                   claimedBy: widget.profile.id,
                   claimedAt: DateTime.now(),
+                  restaurantProfile: donation.restaurantProfile,
                 ));
               });
               ScaffoldMessenger.of(context).showSnackBar(
@@ -1142,7 +1560,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
     try {
       await SupabaseService.client.auth.signOut();
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/welcome');
+        Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
