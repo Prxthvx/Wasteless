@@ -6,6 +6,8 @@ import '../../models/donation.dart';
 import '../../services/repositories/inventory_repository.dart';
 import '../../services/repositories/donation_repository.dart';
 import '../../services/supabase_service.dart';
+import '../scanner.dart';
+
 
 class RestaurantDashboard extends StatefulWidget {
   final UserProfile profile;
@@ -383,7 +385,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
           ],
         ),
       ),
@@ -517,7 +519,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                           ),
                         ),
                         Text(
-                          'Expires: ${item.expiryDate.toString().split(' ')[0]} (${daysUntilExpiry} days)',
+                          'Expires: ${item.expiryDate.toString().split(' ')[0]} ($daysUntilExpiry days)',
                           style: TextStyle(
                             color: daysUntilExpiry <= 2 ? Colors.orange : Colors.grey[600],
                             fontWeight: daysUntilExpiry <= 2 ? FontWeight.bold : FontWeight.normal,
@@ -1156,7 +1158,7 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _category,
+              initialValue: _category,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
@@ -1198,49 +1200,70 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              final newItem = InventoryItem(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                restaurantId: widget.profile.id,
-                name: _nameCtrl.text.trim(),
-                quantity: _quantityCtrl.text.trim(),
-                category: _category,
-                expiryDate: _expiryDate,
-                status: 'available',
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              );
-              
-              try {
-                await widget.onItemAdded(newItem);
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Item added successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error adding item: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          child: const Text('Add Item'),
-        ),
-      ],
+  // 👇 New button for Barcode Scanner
+  TextButton.icon(
+  icon: const Icon(Icons.qr_code_scanner),
+  label: const Text('Use Barcode'),
+  onPressed: () async {
+    final scannedCode = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const Scanner(),
+      ),
+    );
+
+    if (scannedCode != null) {
+      setState(() {
+        _nameCtrl.text = scannedCode; // fill Item Name with scanned value
+      });
+    }
+  },
+),
+
+  TextButton(
+    onPressed: () => Navigator.of(context).pop(),
+    child: const Text('Cancel'),
+  ),
+  ElevatedButton(
+    onPressed: () async {
+      if (_formKey.currentState!.validate()) {
+        final newItem = InventoryItem(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          restaurantId: widget.profile.id,
+          name: _nameCtrl.text.trim(),
+          quantity: _quantityCtrl.text.trim(),
+          category: _category,
+          expiryDate: _expiryDate,
+          status: 'available',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        try {
+          await widget.onItemAdded(newItem);
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Item added successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } catch (e) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error adding item: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    },
+    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+    child: const Text('Add Item'),
+  ),
+],
+
     );
   }
 }
@@ -1389,7 +1412,7 @@ class _EditInventoryDialogState extends State<EditInventoryDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _category,
+              initialValue: _category,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
