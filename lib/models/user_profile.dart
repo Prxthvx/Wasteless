@@ -1,13 +1,14 @@
 class UserProfile {
-    final String id;
-    final String email;
-    final String name;
-    final String role;
-    final String location;
-    final String? phoneNumber;
-    final double? latitude;
-    final double? longitude;
-    final String createdAt;
+  final String id;
+  final String email;
+  final String name;
+  final String role;
+  final String location;
+  final String? phoneNumber;
+  final double? latitude;
+  final double? longitude;
+  final String createdAt;
+  final String? orgName;
 
     UserProfile({
       required this.id,
@@ -19,6 +20,7 @@ class UserProfile {
       this.latitude,
       this.longitude,
       required this.createdAt,
+      this.orgName,
     });
 
     factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class UserProfile {
                 ? double.tryParse(json['longitude'].toString())
                 : null,
         createdAt: json['created_at'] as String,
+        orgName: json['org_name'] as String?,
       );
     }
 
@@ -54,11 +57,12 @@ class UserProfile {
         'latitude': latitude,
         'longitude': longitude,
         'created_at': createdAt,
+        'org_name': orgName,
       };
     }
 
     @override
     String toString() {
-      return 'UserProfile(id: $id, email: $email, name: $name, role: $role, location: $location, phoneNumber: $phoneNumber, latitude: $latitude, longitude: $longitude)';
+      return 'UserProfile(id: $id, email: $email, name: $name, orgName: $orgName, role: $role, location: $location, phoneNumber: $phoneNumber, latitude: $latitude, longitude: $longitude)';
     }
   }

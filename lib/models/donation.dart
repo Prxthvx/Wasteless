@@ -35,6 +35,17 @@ class Donation {
 
   factory Donation.fromJson(Map<String, dynamic> json) {
     try {
+      // Try to get restaurant profile from multiple possible keys
+      Map<String, dynamic>? profileJson;
+      if (json['profiles'] != null) {
+        profileJson = json['profiles'] as Map<String, dynamic>;
+      } else if (json['restaurant_profile'] != null) {
+        profileJson = json['restaurant_profile'] as Map<String, dynamic>;
+      }
+      final profile = profileJson != null ? UserProfile.fromJson(profileJson) : null;
+      if (profile == null || profile.latitude == null || profile.longitude == null) {
+        print('[Donation.fromJson] Missing restaurant coordinates for donation id: ${json['id']}');
+      }
       return Donation(
         id: json['id'] as String,
         inventoryItemId: json['inventory_item_id'] as String?,
@@ -53,7 +64,7 @@ class Donation {
         completedAt: json['completed_at'] != null
             ? DateTime.parse(json['completed_at'] as String)
             : null,
-        restaurantProfile: json['profiles'] != null ? UserProfile.fromJson(json['profiles'] as Map<String, dynamic>) : null,
+        restaurantProfile: profile,
       );
     } catch (e) {
       print('[Donation.fromJson] Error parsing donation: $json\nError: $e');

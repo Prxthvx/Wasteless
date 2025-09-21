@@ -66,26 +66,25 @@ class DonationRepository {
   }
 
   Future<List<Donation>> listMyClaimedDonations(String ngoId) async {
-    // Fetch donation_ids claimed by this NGO
+    // Fetch claimed donations with nested joins for restaurant profile using correct join alias
     final claims = await _client
         .from('donation_claims')
-        .select('donation_id')
+        .select('*, donations(*, profiles!donations_restaurant_id_fkey(*))')
         .eq('ngo_id', ngoId);
 
-    final ids = (claims as List)
-        .map((e) => (e as Map<String, dynamic>)['donation_id'])
-        .whereType<String>()
-        .toList();
-
-    if (ids.isEmpty) return [];
-
-    final data = await _client
-        .from('donations')
-        .select()
-        .inFilter('id', ids)
-        .order('created_at', ascending: false);
-
-    return (data as List).map((e) => Donation.fromJson(Map<String, dynamic>.from(e))).toList();
+    // Parse donations from nested claims
+    final List<Donation> claimedDonations = [];
+    for (final claim in claims as List) {
+      final donationData = (claim as Map<String, dynamic>)['donations'];
+      if (donationData != null) {
+        try {
+          claimedDonations.add(Donation.fromJson(Map<String, dynamic>.from(donationData)));
+        } catch (err) {
+          print('[DonationRepository] Error parsing claimed donation: $donationData\nError: $err');
+        }
+      }
+    }
+    return claimedDonations;
   }
 
   Future<Donation> updateDonationStatus(String donationId, String status) async {

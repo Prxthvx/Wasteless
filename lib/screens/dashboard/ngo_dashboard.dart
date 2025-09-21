@@ -57,32 +57,6 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         print('[NGODashboard] Fetching available donations...');
         _availableDonations = await _donationRepo.listAvailableDonations();
         print('[NGODashboard] Available donations: ${_availableDonations.length}');
-        // Ensure restaurantProfile is populated for each donation
-        for (int i = 0; i < _availableDonations.length; i++) {
-          final donation = _availableDonations[i];
-          if (donation.restaurantProfile == null && donation.restaurantId.isNotEmpty) {
-            // Try to assign from profiles field if present
-            final profilesField = (donation as dynamic).profiles;
-            if (profilesField != null) {
-              _availableDonations[i] = Donation(
-                id: donation.id,
-                inventoryItemId: donation.inventoryItemId,
-                restaurantId: donation.restaurantId,
-                title: donation.title,
-                description: donation.description,
-                quantity: donation.quantity,
-                expiryDate: donation.expiryDate,
-                status: donation.status,
-                postedAt: donation.postedAt,
-                claimedBy: donation.claimedBy,
-                claimedAt: donation.claimedAt,
-                claimMessage: donation.claimMessage,
-                completedAt: donation.completedAt,
-                restaurantProfile: UserProfile.fromJson(Map<String, dynamic>.from(profilesField)),
-              );
-            }
-          }
-        }
         _claimedDonations = await _donationRepo.listMyClaimedDonations(widget.profile.id);
         print('[NGODashboard] Claimed donations: ${_claimedDonations.length}');
       }
@@ -782,9 +756,27 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Map Overview
+          // Map Overview with controls
           NDViewMap(donations: _availableDonations),
           const SizedBox(height: 16),
+
+          // Refresh Button
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                setState(() => _isLoading = true);
+                await _loadData();
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
 
           // Search and Filters
           Card(
@@ -808,40 +800,45 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            border: OutlineInputBorder(),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 180,
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'all', child: Text('All Categories')),
+                              DropdownMenuItem(value: 'vegetables', child: Text('Vegetables')),
+                              DropdownMenuItem(value: 'fruits', child: Text('Fruits')),
+                              DropdownMenuItem(value: 'dairy', child: Text('Dairy')),
+                              DropdownMenuItem(value: 'bread', child: Text('Bread & Pastries')),
+                            ],
+                            onChanged: (value) {},
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 'all', child: Text('All Categories')),
-                            DropdownMenuItem(value: 'vegetables', child: Text('Vegetables')),
-                            DropdownMenuItem(value: 'fruits', child: Text('Fruits')),
-                            DropdownMenuItem(value: 'dairy', child: Text('Dairy')),
-                            DropdownMenuItem(value: 'bread', child: Text('Bread & Pastries')),
-                          ],
-                          onChanged: (value) {},
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Distance',
-                            border: OutlineInputBorder(),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 140,
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: 'Distance',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: '5', child: Text('5 km')),
+                              DropdownMenuItem(value: '10', child: Text('10 km')),
+                              DropdownMenuItem(value: '20', child: Text('20 km')),
+                            ],
+                            onChanged: (value) {},
                           ),
-                          items: const [
-                            DropdownMenuItem(value: '5', child: Text('5 km')),
-                            DropdownMenuItem(value: '10', child: Text('10 km')),
-                            DropdownMenuItem(value: '20', child: Text('20 km')),
-                          ],
-                          onChanged: (value) {},
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -849,7 +846,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
           ),
           const SizedBox(height: 16),
 
-          // Nearby Restaurants
+          // Nearby Restaurants (from actual donations)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -861,9 +858,25 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
-                  _buildRestaurantCard('Green Garden Restaurant', '2.3 km away', '3 donations available'),
-                  _buildRestaurantCard('Fresh Market Cafe', '1.8 km away', '1 donation available'),
-                  _buildRestaurantCard('Local Bakery', '4.1 km away', '2 donations available'),
+                  ..._availableDonations
+                    .where((d) => d.restaurantProfile != null)
+                    .map((donation) {
+                      final profile = donation.restaurantProfile!;
+                      final donationCount = _availableDonations.where((d) => d.restaurantProfile?.id == profile.id).length;
+                      // Optionally, calculate distance if user's location is available
+                      String distance = profile.location;
+                      return _buildRestaurantCard(
+                        profile.name,
+                        distance,
+                        '$donationCount donation${donationCount > 1 ? 's' : ''} available',
+                      );
+                    })
+                    .toList(),
+                  if (_availableDonations.where((d) => d.restaurantProfile != null).isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text('No nearby restaurants found.', style: TextStyle(color: Colors.grey[600])),
+                    ),
                 ],
               ),
             ),
@@ -902,7 +915,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
 
     return Column(
       children: [
-        // Quick Actions
+        // Quick Actions and Refresh Button
         Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
@@ -929,6 +942,11 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                   ],
                 ),
               ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+                onPressed: _isLoading ? null : _loadData,
+              ),
             ],
           ),
         ),
@@ -940,7 +958,6 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             itemBuilder: (context, index) {
               final donation = _availableDonations[index];
               final daysUntilExpiry = donation.expiryDate.difference(DateTime.now()).inDays;
-              
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
@@ -1292,6 +1309,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   void _claimDonation(Donation donation) {
+    final profile = donation.restaurantProfile;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1303,6 +1321,14 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             Text('Claim "${donation.title}"?'),
             const SizedBox(height: 16),
             const Text('This will notify the restaurant of your interest.'),
+            const SizedBox(height: 16),
+            if (profile != null) ...[
+              Text('Organization Name: ${profile.orgName ?? "Not available"}'),
+              if (profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty)
+                Text('Phone: ${profile.phoneNumber}'),
+            ] else ...[
+              Text('Restaurant details not available.'),
+            ],
           ],
         ),
         actions: [
@@ -1327,6 +1353,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                   postedAt: donation.postedAt,
                   claimedBy: widget.profile.id,
                   claimedAt: DateTime.now(),
+                  restaurantProfile: donation.restaurantProfile,
                 ));
               });
               ScaffoldMessenger.of(context).showSnackBar(
