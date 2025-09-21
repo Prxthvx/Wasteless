@@ -339,11 +339,11 @@ class OverviewTab extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                donation.title ?? '',
+                                donation.title,
                                 style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               Text(
-                                '${donation.quantity ?? ''} • ${donation.status ?? ''}',
+                                '${donation.quantity} • ${donation.status}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
