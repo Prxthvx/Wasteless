@@ -4,7 +4,16 @@ import '../../models/user_profile.dart';
 import '../../models/donation.dart';
 import '../../services/repositories/donation_repository.dart';
 import '../../services/supabase_service.dart';
+import 'dialogs/notifications_dialog.dart';
+import 'dialogs/settings_dialog.dart';
 import 'components/nd_view_map.dart'; // Add this import
+import 'components/stat_card.dart';
+import 'components/clickable_stat_card.dart';
+import 'components/quick_stat.dart';
+import 'components/recent_activity_card.dart';
+import 'components/quick_actions_card.dart';
+import 'helpers/analytics_helper.dart';
+import 'helpers/claim_helper.dart';
 
 class NGODashboard extends StatefulWidget {
   final UserProfile profile;
@@ -73,32 +82,8 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   void _calculateAnalytics() {
-    // Calculate analytics based on actual data
-    int totalDonationsClaimed = _claimedDonations.length;
-    int activeClaims = _claimedDonations.where((d) => d.status == 'claimed').length;
-    double foodRescued = 0;
-    int peopleHelped = 0;
-    Set<String> restaurantsConnected = {};
-
-    // Calculate food rescued and people helped from claimed donations
-    for (final donation in _claimedDonations) {
-      // Parse quantity string to double
-      final quantityStr = donation.quantity.replaceAll(RegExp(r'[^\d.]'), '');
-      final quantity = double.tryParse(quantityStr) ?? 0.0;
-      
-      foodRescued += quantity;
-      peopleHelped += (quantity / 2).round(); // Estimate people helped
-      restaurantsConnected.add(donation.restaurantId);
-    }
-
     setState(() {
-      _analytics = {
-        'totalDonationsClaimed': totalDonationsClaimed,
-        'peopleHelped': peopleHelped,
-        'foodRescued': foodRescued.round(),
-        'activeClaims': activeClaims,
-        'restaurantsConnected': restaurantsConnected.length,
-      };
+      _analytics = AnalyticsHelper.calculateAnalytics(_claimedDonations);
     });
   }
 
@@ -208,10 +193,10 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       return const Center(child: CircularProgressIndicator());
     }
 
-    final availableDonations = _availableDonations.length;
-    final activeClaims = _analytics['activeClaims'];
-    final totalClaims = _claimedDonations.length;
-    final foodRescued = _analytics['foodRescued'];
+  final availableDonations = _availableDonations.length;
+  final activeClaims = _analytics['activeClaims'];
+  final totalClaims = _claimedDonations.length;
+  final foodRescued = _analytics['foodRescued'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -270,9 +255,9 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildQuickStat('Available Donations', '$availableDonations', Icons.favorite),
+                        QuickStat(label: 'Available Donations', value: '$availableDonations', icon: Icons.favorite),
                         const SizedBox(width: 16),
-                        _buildQuickStat('Active Claims', '$activeClaims', Icons.check_circle),
+                        QuickStat(label: 'Active Claims', value: '$activeClaims', icon: Icons.check_circle),
                       ],
                     ),
                   ],
@@ -298,10 +283,10 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             mainAxisSpacing: 12,
             childAspectRatio: 1.2,
             children: [
-              _buildClickableStatCard('Available Donations', '$availableDonations', Icons.favorite, Colors.red, () => _tabController.animateTo(2)), // Navigate to Available
-              _buildClickableStatCard('Active Claims', '$activeClaims', Icons.check_circle, Colors.blue, () => _tabController.animateTo(3)), // Navigate to My Claims
-              _buildClickableStatCard('Total Claims', '$totalClaims', Icons.history, Colors.purple, () => _tabController.animateTo(3)), // Navigate to My Claims
-              _buildClickableStatCard('Food Rescued', '${foodRescued}kg', Icons.recycling, Colors.green, () => _tabController.animateTo(4)), // Navigate to Impact
+              ClickableStatCard(title: 'Available Donations', value: '$availableDonations', icon: Icons.favorite, color: Colors.red, onTap: () => _tabController.animateTo(2)),
+              ClickableStatCard(title: 'Active Claims', value: '$activeClaims', icon: Icons.check_circle, color: Colors.blue, onTap: () => _tabController.animateTo(3)),
+              ClickableStatCard(title: 'Total Claims', value: '$totalClaims', icon: Icons.history, color: Colors.purple, onTap: () => _tabController.animateTo(3)),
+              ClickableStatCard(title: 'Food Rescued', value: '${foodRescued}kg', icon: Icons.recycling, color: Colors.green, onTap: () => _tabController.animateTo(4)),
             ],
           ),
           const SizedBox(height: 20),
@@ -314,7 +299,11 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             ),
           ),
           const SizedBox(height: 12),
-          _buildRecentActivityCard(),
+          RecentActivityCard(
+            recentClaims: _claimedDonations.take(3).toList(),
+            recentAvailable: _availableDonations.take(2).toList(),
+            onNavigate: (tabIndex) => _tabController.animateTo(tabIndex),
+          ),
           const SizedBox(height: 20),
 
           // Quick Actions
@@ -325,7 +314,9 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             ),
           ),
           const SizedBox(height: 12),
-          _buildQuickActionsCard(),
+          QuickActionsCard(
+            onNavigate: (tabIndex) => _tabController.animateTo(tabIndex),
+          ),
         ],
       ),
     );
@@ -904,7 +895,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         ),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () => _showRestaurantDetails(name),
-      ),
+      )
     );
   }
 
@@ -1309,65 +1300,28 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   void _claimDonation(Donation donation) {
-    final profile = donation.restaurantProfile;
-    showDialog(
+    ClaimHelper.showClaimDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Claim Donation'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Claim "${donation.title}"?'),
-            const SizedBox(height: 16),
-            const Text('This will notify the restaurant of your interest.'),
-            const SizedBox(height: 16),
-            if (profile != null) ...[
-              Text('Organization Name: ${profile.orgName ?? "Not available"}'),
-              if (profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty)
-                Text('Phone: ${profile.phoneNumber}'),
-            ] else ...[
-              Text('Restaurant details not available.'),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // In demo mode, move to claimed list
-              setState(() {
-                _availableDonations.removeWhere((d) => d.id == donation.id);
-                _claimedDonations.add(Donation(
-                  id: donation.id,
-                  restaurantId: donation.restaurantId,
-                  title: donation.title,
-                  description: donation.description,
-                  quantity: donation.quantity,
-                  expiryDate: donation.expiryDate,
-                  status: 'claimed',
-                  postedAt: donation.postedAt,
-                  claimedBy: widget.profile.id,
-                  claimedAt: DateTime.now(),
-                  restaurantProfile: donation.restaurantProfile,
-                ));
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Donation claimed successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            child: const Text('Claim'),
-          ),
-        ],
-      ),
+      donation: donation,
+      profile: widget.profile,
+      onClaim: (donation) {
+        setState(() {
+          _availableDonations.removeWhere((d) => d.id == donation.id);
+          _claimedDonations.add(Donation(
+            id: donation.id,
+            restaurantId: donation.restaurantId,
+            title: donation.title,
+            description: donation.description,
+            quantity: donation.quantity,
+            expiryDate: donation.expiryDate,
+            status: 'claimed',
+            postedAt: donation.postedAt,
+            claimedBy: widget.profile.id,
+            claimedAt: DateTime.now(),
+            restaurantProfile: donation.restaurantProfile,
+          ));
+        });
+      },
     );
   }
 
@@ -1683,75 +1637,3 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
 }
 
 // Dialog classes
-class NotificationsDialog extends StatelessWidget {
-  const NotificationsDialog({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Notifications'),
-      content: const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('• New donation available nearby'),
-          Text('• Claim status updated'),
-          Text('• Monthly impact report ready'),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-class SettingsDialog extends StatelessWidget {
-  final UserProfile profile;
-  
-  const SettingsDialog({super.key, required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Settings'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('NGO: ${profile.name}'),
-          Text('Location: ${profile.location}'),
-          const SizedBox(height: 16),
-          const Text('Settings options would go here'),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text('Sign Out', style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              minimumSize: const Size.fromHeight(40),
-            ),
-            onPressed: () async {
-              Navigator.of(context).pop();
-              try {
-                await SupabaseService.client.auth.signOut();
-                Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Sign out failed: $e'), backgroundColor: Colors.red),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
