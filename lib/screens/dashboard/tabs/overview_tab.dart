@@ -296,7 +296,7 @@ class OverviewTab extends StatelessWidget {
                                 style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               Text(
-                                '${claim.quantity ?? ''} • ${claim.status ?? ''}',
+                                '${claim.quantity} • ${claim.status}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
