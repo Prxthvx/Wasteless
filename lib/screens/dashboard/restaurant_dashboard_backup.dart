@@ -434,7 +434,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               itemCount: categorizedInventory.length,
               itemBuilder: (context, index) {
                 final category = categorizedInventory.keys.elementAt(index);
-                final items = categorizedInventory[category]!;
+                final items = categorizedInventory[category]??[];
                 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
@@ -1395,7 +1395,7 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
         ),
         ElevatedButton(
           onPressed: () async {
-            if (_formKey.currentState!.validate()) {
+            if (_formKey.currentState?.validate() ?? false) {
               // Create the new item
               final newItem = InventoryItem(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -1535,7 +1535,7 @@ class RecipeDetailsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Recipe Details'),
-      content: Text('Recipe details${item != null ? ' for ${item!.name}' : ''}'),
+  content: Text('Recipe details${item?.name != null ? ' for ${item?.name}' : ''}'),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),

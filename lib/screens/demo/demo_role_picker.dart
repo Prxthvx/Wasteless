@@ -25,7 +25,7 @@ class _DemoRolePickerScreenState extends State<DemoRolePickerScreen> {
   }
 
   void _enterDemo() {
-    if (!_formKey.currentState!.validate()) return;
+  if (!(_formKey.currentState?.validate() ?? false)) return;
     final profile = UserProfile(
       id: 'demo-user-id',
       email: 'demo@example.com',

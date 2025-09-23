@@ -18,6 +18,7 @@ class WelcomeScreen extends StatelessWidget {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
+            child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -169,6 +170,7 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 32),
               ],
             ),
+          ),
           ),
         ),
       ),

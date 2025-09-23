@@ -706,74 +706,101 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.favorite, color: Colors.green),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Donations: ${_donations.length}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Active: ${_donations.where((d) => d.status == 'available').length}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadData,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _donations.length,
-              itemBuilder: (context, index) {
-                final donation = _donations[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: _getDonationStatusColor(donation.status),
-                      child: Icon(
-                        _getDonationStatusIcon(donation.status),
-                        color: Colors.white,
+    try {
+      return Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.favorite, color: Colors.green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Donations: ${_donations.length}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    title: Text(donation.title),
-                    subtitle: Text('Quantity: ${donation.quantity}'),
-                    trailing: PopupMenuButton(
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'view',
-                          child: Text('View Details'),
-                        ),
-                      ],
-                      onSelected: (value) => _handleDonationAction(value, donation),
-                    ),
+                      Text(
+                        'Active: ${_donations.where((d) => d.status == 'available').length}',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
-        ),
-      ],
-    );
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _donations.length,
+                itemBuilder: (context, index) {
+                  try {
+                    final donation = _donations[index];
+                    // Defensive: handle nulls and log
+                    if (donation == null) {
+                      debugPrint('Donation at index $index is null');
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text('Error: Donation data missing', style: TextStyle(color: Colors.red)),
+                        ),
+                      );
+                    }
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _getDonationStatusColor(donation.status ?? ''),
+                          child: Icon(
+                            _getDonationStatusIcon(donation.status ?? ''),
+                            color: Colors.white,
+                          ),
+                        ),
+                        title: Text(donation.title ?? 'No Title'),
+                        subtitle: Text('Quantity: ${donation.quantity ?? 'N/A'}'),
+                        trailing: PopupMenuButton(
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'view',
+                              child: Text('View Details'),
+                            ),
+                          ],
+                          onSelected: (value) => _handleDonationAction(value, donation),
+                        ),
+                      ),
+                    );
+                  } catch (e, stack) {
+                    debugPrint('Error rendering donation card at index $index: $e\n$stack');
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        title: Text('Error displaying donation', style: TextStyle(color: Colors.red)),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+    } catch (e, stack) {
+      debugPrint('Error displaying donations tab: $e\n$stack');
+      return Center(
+        child: Text('Error displaying donations. Please try again later.', style: TextStyle(color: Colors.red)),
+      );
+    }
   }
 
   Widget _buildRecipesTab() {
@@ -2208,54 +2235,60 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
-  void _showPostDonationDialog(InventoryItem item) {
-    showDialog(
+  void _showPostDonationDialog(InventoryItem item) async {
+    final newDonation = await showDialog<Donation>(
       context: context,
-      builder: (context) => PostDonationDialog(
+      builder: (dialogContext) => PostDonationDialog(
         profile: widget.profile,
         item: item,
-        onDonationPosted: (donation) async {
-          try {
-            if (widget.profile.id != 'demo-user-id') {
-              final savedDonation = await _donationRepo.postDonation(
-                restaurantId: widget.profile.id,
-                title: donation.title,
-                description: donation.description,
-                quantity: donation.quantity,
-                expiryDate: donation.expiryDate,
-              );
-              if (savedDonation != null) {
-                setState(() {
-                  _donations.add(savedDonation);
-                });
-                // Recalculate analytics after adding donation
-                _calculateAnalytics();
-              }
-            } else {
-              setState(() {
-                _donations.add(donation);
-              });
-              // Recalculate analytics after adding donation
-              _calculateAnalytics();
-            }
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Donation posted successfully!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error posting donation: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
       ),
     );
+
+    if (newDonation != null && mounted) {
+      try {
+        debugPrint('[PostDonation] Donation posted: ${newDonation.toString()}');
+        if (widget.profile.id != 'demo-user-id') {
+          final savedDonation = await _donationRepo.postDonation(
+            restaurantId: widget.profile.id,
+            title: newDonation.title,
+            description: newDonation.description,
+            quantity: newDonation.quantity,
+            expiryDate: newDonation.expiryDate,
+          );
+          debugPrint('[PostDonation] Saved donation: ${savedDonation?.toString()}');
+          if (!mounted) return;
+          if (savedDonation != null) {
+            setState(() {
+              _donations.add(savedDonation);
+            });
+            _calculateAnalytics();
+          }
+        } else {
+          if (!mounted) return;
+          setState(() {
+            _donations.add(newDonation);
+          });
+          _calculateAnalytics();
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Donation posted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Ensure donation list is refreshed from backend after posting
+        await _loadData();
+        if (mounted) setState(() {});
+      } catch (e, stack) {
+        debugPrint('[PostDonation] Error: $e\n$stack');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error posting donation: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _handleDonationAction(String action, Donation donation) {
@@ -2663,7 +2696,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                                           _buildRecipeTag('${recipe['time']}', Icons.access_time, Colors.blue),
                                           _buildRecipeTag('${recipe['difficulty']}', Icons.speed, Colors.green),
                                           _buildRecipeTag('${recipe['wasteReduction']}% waste', Icons.eco, Colors.orange),
-                                        ],
+                                                                               ],
                                       ),
                                       
                                       // Source and cuisine
@@ -3430,7 +3463,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         'wasteReduction': 95,
         'ingredients': ingredients,
         'instructions': '1. Peel and chop ${primary.name}${otherFruits.isNotEmpty ? ' and ${otherFruits.first.name}' : ''}\n2. Add to blender with ${dairy.first.name}\n3. Add honey or sugar to taste\n4. Blend until smooth and creamy\n5. Serve immediately over ice',
-        'nutritionalValue': 'High in vitamins, antioxidants, and probiotics',
+        'nutritionalValue': 'High in vitamins and antioxidants',
         'serves': '2-3 people',
       });
     }
@@ -3528,7 +3561,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         'wasteReduction': 95,
         'ingredients': stirFryIngredients,
         'instructions': '1. Heat oil in a large pan\n2. Add garlic and ginger\n3. Add vegetables in order of cooking time\n4. Season with soy sauce and sesame oil\n5. Serve immediately',
-        'nutritionalValue': 'High in vitamins and fiber',
+        'nutritionalValue': 'High in fiber and vitamins',
         'serves': '2-4 people',
       });
     }
@@ -4019,7 +4052,7 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
         ),
         ElevatedButton(
           onPressed: () async {
-            if (_formKey.currentState!.validate()) {
+            if (_formKey.currentState?.validate() ?? false) {
               final newItem = InventoryItem(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 restaurantId: widget.profile.id,
@@ -4410,8 +4443,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ],
               ),
             ),
-            
-            // Settings Content
+            // Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -4462,9 +4494,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 24),
-                    
                     // Inventory Management Section
                     _buildSettingsSection(
                       'Inventory Management',
@@ -4487,9 +4517,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 24),
-                    
                     // App Preferences Section
                     _buildSettingsSection(
                       'App Preferences',
@@ -4507,13 +4535,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                           'Select your preferred language',
                           _selectedLanguage,
                           ['English', 'Spanish', 'French', 'German', 'Hindi'],
-                          (value) => setState(() => _selectedLanguage = value!),
+                          (value) {
+                            if (value != null) setState(() => _selectedLanguage = value);
+                          },
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 24),
-                    
                     // Account Section
                     _buildSettingsSection(
                       'Account',
@@ -4527,13 +4555,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                           'Change Password',
                           'Update your account password',
                           Icons.lock,
-                          () => _showChangePasswordDialog(),
+                          () => _showChangePasswordDialog(context),
                         ),
                         _buildActionTile(
                           'Export Data',
                           'Download your inventory and analytics data',
                           Icons.download,
-                          () => _showExportDataDialog(),
+                          () => _showExportDataDialog(context),
                         ),
                       ],
                     ),
@@ -4541,7 +4569,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ),
               ),
             ),
-            
             // Footer Actions
             Container(
               padding: const EdgeInsets.all(20),
@@ -4563,7 +4590,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _saveSettings(),
+                      onPressed: () => _saveSettings(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -4578,6 +4605,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
         ),
       ),
     );
+  }
+
+  // ...existing code...
   }
 
   Widget _buildSettingsSection(String title, IconData icon, Color color, List<Widget> children) {
@@ -4677,16 +4707,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        leading: Icon(icon, color: Colors.green),
         title: Text(title),
         subtitle: Text(subtitle),
-        leading: Icon(icon, color: Colors.green),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
       ),
     );
   }
 
-  void _showChangePasswordDialog() {
+  void _showChangePasswordDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -4702,7 +4732,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  void _showExportDataDialog() {
+  void _showExportDataDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -4718,7 +4748,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  void _saveSettings() {
+  void _saveSettings(BuildContext context) {
     // Here you would save the settings to SharedPreferences or database
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -4728,7 +4758,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
     Navigator.of(context).pop();
   }
-}
 
 class EditInventoryDialog extends StatefulWidget {
   final UserProfile profile;
@@ -4845,7 +4874,7 @@ class _EditInventoryDialogState extends State<EditInventoryDialog> {
         ),
         ElevatedButton(
           onPressed: () async {
-            if (_formKey.currentState!.validate()) {
+            if (_formKey.currentState?.validate() ?? false) {
               final updatedItem = InventoryItem(
                 id: widget.item.id,
                 restaurantId: widget.item.restaurantId,
@@ -4872,13 +4901,11 @@ class _EditInventoryDialogState extends State<EditInventoryDialog> {
 class PostDonationDialog extends StatefulWidget {
   final UserProfile profile;
   final InventoryItem item;
-  final Future<void> Function(Donation) onDonationPosted;
   
   const PostDonationDialog({
     super.key,
     required this.profile,
     required this.item,
-    required this.onDonationPosted,
   });
 
   @override
@@ -4953,8 +4980,8 @@ class _PostDonationDialogState extends State<PostDonationDialog> {
       ),
       actions: [
         ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
+          onPressed: () {
+            if (_formKey.currentState?.validate() ?? false) {
               final donation = Donation(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 restaurantId: widget.profile.id,
@@ -4965,11 +4992,7 @@ class _PostDonationDialogState extends State<PostDonationDialog> {
                 status: 'available',
                 postedAt: DateTime.now(),
               );
-              await widget.onDonationPosted(donation);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Donation posted successfully!'), backgroundColor: Colors.green),
-              );
+              Navigator.of(context).pop(donation);
             }
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

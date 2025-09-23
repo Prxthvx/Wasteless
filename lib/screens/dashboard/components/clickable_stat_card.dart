@@ -17,7 +17,9 @@ class ClickableStatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: color, size: 32),
@@ -42,7 +44,8 @@ class ClickableStatCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
+         ),
+       ),
       ),
     );
   }

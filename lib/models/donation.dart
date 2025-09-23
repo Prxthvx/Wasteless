@@ -42,9 +42,14 @@ class Donation {
       } else if (json['restaurant_profile'] != null) {
         profileJson = json['restaurant_profile'] as Map<String, dynamic>;
       }
-      final profile = profileJson != null ? UserProfile.fromJson(profileJson) : null;
-      if (profile == null || profile.latitude == null || profile.longitude == null) {
-        print('[Donation.fromJson] Missing restaurant coordinates for donation id: ${json['id']}');
+      UserProfile? profile;
+      if (profileJson != null) {
+        final tempProfile = UserProfile.fromJson(profileJson);
+        if (tempProfile.latitude != null && tempProfile.longitude != null) {
+          profile = tempProfile;
+        } else {
+          profile = null; // treat as missing coordinates
+        }
       }
       return Donation(
         id: json['id'] as String,
