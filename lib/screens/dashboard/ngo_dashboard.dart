@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 // import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/donation.dart';
@@ -1135,20 +1136,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '📊 Impact chart would go here\n(Integration with charts library)',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ),
+                  _buildImpactChart(),
                 ],
               ),
             ),
@@ -1588,6 +1576,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
               Navigator.of(context).pop();
             },
           ),
+          
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text('My Claims'),
@@ -1634,6 +1623,131 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImpactChart() {
+    // Mock data for the bar chart
+    final barGroups = [
+      _makeGroupData(0, 50, 'Apr'),
+      _makeGroupData(1, 65, 'May'),
+      _makeGroupData(2, 45, 'Jun'),
+      _makeGroupData(3, 70, 'Jul'),
+      _makeGroupData(4, 55, 'Aug'),
+      _makeGroupData(5, 60, 'Sep'),
+      _makeGroupData(6, 75, 'Oct'),
+    ];
+
+    return SizedBox(
+      height: 250, // Increased height to accommodate title
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: 500, // Provide a fixed width larger than the viewport
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: 80,
+              barTouchData: BarTouchData(
+                enabled: false,
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (double value, TitleMeta meta) {
+                      const style = TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      );
+                      String text;
+                      switch (value.toInt()) {
+                        case 0:
+                          text = 'Apr';
+                          break;
+                        case 1:
+                          text = 'May';
+                          break;
+                        case 2:
+                          text = 'Jun';
+                          break;
+                        case 3:
+                          text = 'Jul';
+                          break;
+                        case 4:
+                          text = 'Aug';
+                          break;
+                        case 5:
+                          text = 'Sep';
+                          break;
+                        case 6:
+                          text = 'Oct';
+                          break;
+                        default:
+                          text = '';
+                          break;
+                      }
+                      return SideTitleWidget(
+                        axisSide: meta.axisSide,
+                        space: 4,
+                        child: Text(text, style: style),
+                      );
+                    },
+                    reservedSize: 32,
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 44,
+                    getTitlesWidget: (value, meta) {
+                      if (value == meta.max) {
+                        return Container();
+                      }
+                      return Text(
+                        meta.formattedValue,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                        ),
+                      );
+                    },
+                  ),
+                  axisNameWidget: const Text(
+                    'Donations Claimed',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  axisNameSize: 30,
+                ),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              barGroups: barGroups,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  BarChartGroupData _makeGroupData(int x, double y, String month) {
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(
+          toY: y,
+          color: Colors.green,
+          width: 16,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ],
     );
   }
 }
