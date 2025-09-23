@@ -33,11 +33,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (event == AuthChangeEvent.signedIn && user != null) {
         _fetchUserProfile(user.id);
       } else if (event == AuthChangeEvent.signedOut) {
-        setState(() {
-          _user = null;
-          _profile = null;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _user = null;
+            _profile = null;
+            _isLoading = false;
+          });
+        }
       }
     });
   }
@@ -45,18 +47,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuthState() async {
     try {
       final session = SupabaseService.client.auth.currentSession;
-      if (session?.user != null) {
-        _user = session!.user;
-        await _fetchUserProfile(_user!.id);
+      final user = session?.user;
+      if (user != null) {
+        _user = user;
+        await _fetchUserProfile(user.id);
       } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -69,10 +76,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
           .single();
 
       final profile = UserProfile.fromJson(response);
-      setState(() {
-        _profile = profile;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _profile = profile;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       // Profile not found, create one automatically
       try {
@@ -96,20 +105,26 @@ class _AuthWrapperState extends State<AuthWrapper> {
               .single();
 
           final newProfile = UserProfile.fromJson(newResponse);
-          setState(() {
-            _profile = newProfile;
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _profile = newProfile;
+              _isLoading = false;
+            });
+          }
         } else {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        }
+      } catch (profileError) {
+        // If profile creation fails, still show welcome screen
+        if (mounted) {
           setState(() {
             _isLoading = false;
           });
         }
-      } catch (profileError) {
-        // If profile creation fails, still show welcome screen
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -141,9 +156,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     // User is authenticated and has a profile
     if (_user != null && _profile != null) {
-      if (_profile!.role == 'restaurant') {
+      if (_profile?.role == 'restaurant' && _profile != null) {
         return RestaurantDashboard(profile: _profile!);
-      } else if (_profile!.role == 'ngo') {
+      } else if (_profile?.role == 'ngo' && _profile != null) {
         return NGODashboard(profile: _profile!);
       }
     }

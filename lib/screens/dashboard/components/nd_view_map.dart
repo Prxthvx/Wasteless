@@ -27,14 +27,14 @@ class _NDViewMapState extends State<NDViewMap> {
   Widget build(BuildContext context) {
     final validDonations = widget.donations.where((d) =>
       d.restaurantProfile != null &&
-      d.restaurantProfile!.latitude != null &&
-      d.restaurantProfile!.longitude != null
+      d.restaurantProfile?.latitude != null &&
+      d.restaurantProfile?.longitude != null
     ).toList();
 
     LatLng mapCenter = const LatLng(12.9716, 77.5946);
     if (validDonations.isNotEmpty) {
-      final first = validDonations.first.restaurantProfile!;
-      mapCenter = LatLng(first.latitude!, first.longitude!);
+      final first = validDonations.first.restaurantProfile;
+      mapCenter = LatLng(first?.latitude ?? 12.9716, first?.longitude ?? 77.5946);
     }
 
     Widget mapWidget = Stack(
@@ -52,17 +52,17 @@ class _NDViewMapState extends State<NDViewMap> {
             ),
             MarkerLayer(
               markers: validDonations.map((donation) {
-                final profile = donation.restaurantProfile!;
+                final profile = donation.restaurantProfile;
                 return Marker(
                   width: 40,
                   height: 40,
-                  point: LatLng(profile.latitude!, profile.longitude!),
+                  point: LatLng(profile?.latitude ?? 12.9716, profile?.longitude ?? 77.5946),
                   child: GestureDetector(
                     onTap: () {
                       showDialog(
                         context: context,
                         builder: (dialogContext) => AlertDialog(
-                          title: Text(profile.name),
+                          title: Text(profile?.name ?? 'Unknown'),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +70,7 @@ class _NDViewMapState extends State<NDViewMap> {
                               Text('Donation: ${donation.title}'),
                               Text('Quantity: ${donation.quantity}'),
                               Text('Expires: ${donation.expiryDate.toString().split(' ')[0]}'),
-                              if (donation.description != null && donation.description!.isNotEmpty)
+                              if ((donation.description ?? '').isNotEmpty)
                                 Text('Description: ${donation.description}'),
                             ],
                           ),

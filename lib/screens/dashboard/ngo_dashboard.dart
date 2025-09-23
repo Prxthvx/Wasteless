@@ -153,7 +153,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () => _showNotifications(),
+            onPressed: _showNotificationsDialog,
           ),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -852,12 +852,12 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                   ..._availableDonations
                     .where((d) => d.restaurantProfile != null)
                     .map((donation) {
-                      final profile = donation.restaurantProfile!;
-                      final donationCount = _availableDonations.where((d) => d.restaurantProfile?.id == profile.id).length;
+                      final profile = donation.restaurantProfile;
+                      final donationCount = _availableDonations.where((d) => d.restaurantProfile?.id == profile?.id).length;
                       // Optionally, calculate distance if user's location is available
-                      String distance = profile.location;
+                      String distance = profile?.location ?? 'Unknown location';
                       return _buildRestaurantCard(
-                        profile.name,
+                        profile?.name ?? 'Unknown',
                         distance,
                         '$donationCount donation${donationCount > 1 ? 's' : ''} available',
                       );
@@ -972,7 +972,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
                         ),
                       ),
                       if (donation.description != null)
-                        Text(donation.description!, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        Text(donation.description ?? '', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                     ],
                   ),
                   trailing: ElevatedButton(
@@ -1448,10 +1448,12 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
     );
   }
 
-  void _showNotifications() {
+  void _showNotificationsDialog() {
     showDialog(
       context: context,
-      builder: (context) => const NotificationsDialog(),
+      builder: (context) => NotificationsDialog(
+        donations: _availableDonations, // Pass the available donations
+      ),
     );
   }
 
@@ -1481,7 +1483,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
               title: const Text('Notifications'),
               onTap: () {
                 Navigator.of(context).pop();
-                _showNotifications();
+                _showNotificationsDialog();
               },
             ),
             ListTile(
@@ -1610,7 +1612,7 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             title: const Text('Notifications'),
             onTap: () {
               Navigator.of(context).pop();
-              _showNotifications();
+              _showNotificationsDialog();
             },
           ),
           ListTile(

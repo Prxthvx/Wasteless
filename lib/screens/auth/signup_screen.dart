@@ -75,7 +75,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signup() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
     try {
       final email = _emailController.text.trim();

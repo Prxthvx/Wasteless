@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isLoading = true);
 
@@ -103,6 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
@@ -200,6 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

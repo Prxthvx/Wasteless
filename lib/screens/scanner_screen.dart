@@ -12,7 +12,7 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   final MobileScannerController cameraController = MobileScannerController();
-  bool _scanned = false; // ✅ prevent multiple triggers
+  bool _scanned = false; //  prevent multiple triggers
 
   @override
   Widget build(BuildContext context) {

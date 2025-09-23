@@ -26,7 +26,7 @@ class ClaimHelper {
             const SizedBox(height: 16),
             if (restaurantProfile != null) ...[
               Text('Organization Name: ${restaurantProfile.orgName ?? "Not available"}'),
-              if (restaurantProfile.phoneNumber != null && restaurantProfile.phoneNumber!.isNotEmpty)
+              if ((restaurantProfile.phoneNumber ?? '').isNotEmpty)
                 Text('Phone: ${restaurantProfile.phoneNumber}'),
             ] else ...[
               Text('Restaurant details not available.'),
