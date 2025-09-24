@@ -30,30 +30,41 @@ class DonationRepository {
   }
 
   Future<List<Donation>> listMyRestaurantDonations(String restaurantId) async {
-    final data = await _client
-        .from('donations')
-        .select()
-        .eq('restaurant_id', restaurantId)
-        .order('created_at', ascending: false);
-    return (data as List).map((e) => Donation.fromJson(Map<String, dynamic>.from(e))).toList();
+    try {
+      final data = await _client
+          .from('donations')
+          .select('*, profiles!donations_restaurant_id_fkey(*)')
+          .eq('restaurant_id', restaurantId)
+          .order('posted_at', ascending: false);
+      return (data as List).map((e) => Donation.fromJson(Map<String, dynamic>.from(e))).toList();
+    } catch (e) {
+      print('[DonationRepository] Error listing restaurant donations: $e');
+      return [];
+    }
   }
 
-  Future<DonationClaim> claimDonation({
+  Future<DonationClaim?> claimDonation({
     required String donationId,
     required String ngoId,
     String? claimMessage,
   }) async {
-    final payload = {
-      'donation_id': donationId,
-      'ngo_id': ngoId,
-      if (claimMessage != null) 'claim_message': claimMessage,
-    };
-    final data = await _client
-        .from('donation_claims')
-        .insert(payload)
-        .select()
-        .single();
-    return DonationClaim.fromJson(Map<String, dynamic>.from(data));
+    try {
+      // Use a transaction to ensure both operations succeed or fail together
+      final data = await _client.rpc('claim_donation_and_update_status', params: {
+        'p_donation_id': donationId,
+        'p_ngo_id': ngoId,
+        'p_claim_message': claimMessage,
+      });
+
+      if (data != null) {
+        // The RPC returns the created claim record as JSON.
+        return DonationClaim.fromJson(data as Map<String, dynamic>);
+      }
+      return null;
+    } catch (e) {
+      print('[DonationRepository] Error claiming donation: $e');
+      return null;
+    }
   }
 
   Future<List<DonationClaim>> listClaimsForDonation(String donationId) async {
