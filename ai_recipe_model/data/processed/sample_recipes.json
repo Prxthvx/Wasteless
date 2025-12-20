@@ -1,0 +1,213 @@
+[
+  {
+    "name": "Aloo Gobi",
+    "ingredients": [
+      "potato",
+      "cauliflower",
+      "onion",
+      "tomato",
+      "turmeric",
+      "cumin",
+      "coriander",
+      "ginger",
+      "garlic",
+      "green chilli"
+    ],
+    "instructions": "Heat oil, add cumin. Add onions, ginger, garlic. Add tomatoes. Add potatoes and cauliflower. Add spices. Cook until tender.",
+    "cuisine": "North Indian",
+    "course": "Main Course",
+    "diet": "Vegetarian",
+    "prep_time": 15,
+    "cook_time": 30
+  },
+  {
+    "name": "Dal Tadka",
+    "ingredients": [
+      "toor dal",
+      "onion",
+      "tomato",
+      "turmeric",
+      "cumin",
+      "mustard",
+      "curry leaf",
+      "ghee",
+      "red chilli",
+      "ginger",
+      "garlic"
+    ],
+    "instructions": "Cook dal. Heat ghee, add mustard, cumin. Add onions, ginger, garlic. Add tomatoes and spices. Pour over dal.",
+    "cuisine": "North Indian",
+    "course": "Main Course",
+    "diet": "Vegetarian",
+    "prep_time": 10,
+    "cook_time": 25
+  },
+  {
+    "name": "Paneer Butter Masala",
+    "ingredients": [
+      "paneer",
+      "butter",
+      "cream",
+      "tomato",
+      "onion",
+      "cashew",
+      "ginger",
+      "garlic",
+      "garam masala",
+      "kasuri methi",
+      "red chilli"
+    ],
+    "instructions": "Make tomato gravy. Add cream and butter. Add paneer cubes. Garnish with kasuri methi.",
+    "cuisine": "North Indian",
+    "course": "Main Course",
+    "diet": "Vegetarian",
+    "prep_time": 20,
+    "cook_time": 30
+  },
+  {
+    "name": "Chicken Biryani",
+    "ingredients": [
+      "chicken",
+      "basmati rice",
+      "onion",
+      "yogurt",
+      "tomato",
+      "ginger garlic paste",
+      "biryani masala",
+      "saffron",
+      "ghee",
+      "mint",
+      "coriander"
+    ],
+    "instructions": "Marinate chicken. Cook rice. Layer rice and chicken. Dum cook.",
+    "cuisine": "Hyderabadi",
+    "course": "Main Course",
+    "diet": "Non-Vegetarian",
+    "prep_time": 30,
+    "cook_time": 45
+  },
+  {
+    "name": "Masala Dosa",
+    "ingredients": [
+      "dosa batter",
+      "potato",
+      "onion",
+      "mustard",
+      "curry leaf",
+      "turmeric",
+      "green chilli",
+      "urad dal",
+      "chana dal"
+    ],
+    "instructions": "Make potato filling. Spread dosa batter on tawa. Add filling. Fold and serve.",
+    "cuisine": "South Indian",
+    "course": "Breakfast",
+    "diet": "Vegetarian",
+    "prep_time": 15,
+    "cook_time": 20
+  },
+  {
+    "name": "Palak Paneer",
+    "ingredients": [
+      "palak",
+      "paneer",
+      "onion",
+      "tomato",
+      "cream",
+      "ginger",
+      "garlic",
+      "cumin",
+      "garam masala",
+      "kasuri methi"
+    ],
+    "instructions": "Blanch spinach. Make puree. Cook onion-tomato base. Add spinach and paneer.",
+    "cuisine": "North Indian",
+    "course": "Main Course",
+    "diet": "Vegetarian",
+    "prep_time": 15,
+    "cook_time": 25
+  },
+  {
+    "name": "Chole Bhature",
+    "ingredients": [
+      "chickpeas",
+      "onion",
+      "tomato",
+      "ginger",
+      "garlic",
+      "chole masala",
+      "tea bags",
+      "flour",
+      "yogurt",
+      "baking soda"
+    ],
+    "instructions": "Cook chickpeas with spices. Make bhature dough. Deep fry bhature. Serve together.",
+    "cuisine": "Punjabi",
+    "course": "Main Course",
+    "diet": "Vegetarian",
+    "prep_time": 30,
+    "cook_time": 40
+  },
+  {
+    "name": "Rajma Chawal",
+    "ingredients": [
+      "kidney beans",
+      "basmati rice",
+      "onion",
+      "tomato",
+      "ginger",
+      "garlic",
+      "cumin",
+      "coriander",
+      "red chilli",
+      "garam masala"
+    ],
+    "instructions": "Soak and cook rajma. Make gravy. Cook rice separately. Serve together.",
+    "cuisine": "North Indian",
+    "course": "Main Course",
+    "diet": "Vegetarian",
+    "prep_time": 20,
+    "cook_time": 35
+  },
+  {
+    "name": "Sambar",
+    "ingredients": [
+      "toor dal",
+      "drumstick",
+      "carrot",
+      "brinjal",
+      "tamarind",
+      "sambar powder",
+      "mustard",
+      "curry leaf",
+      "asafoetida"
+    ],
+    "instructions": "Cook dal and vegetables. Add tamarind. Add sambar powder. Temper with mustard and curry leaves.",
+    "cuisine": "South Indian",
+    "course": "Side Dish",
+    "diet": "Vegetarian",
+    "prep_time": 15,
+    "cook_time": 30
+  },
+  {
+    "name": "Butter Chicken",
+    "ingredients": [
+      "chicken",
+      "butter",
+      "cream",
+      "tomato",
+      "onion",
+      "cashew",
+      "ginger garlic paste",
+      "garam masala",
+      "kasuri methi",
+      "red chilli"
+    ],
+    "instructions": "Marinate and grill chicken. Make tomato gravy. Add butter and cream. Add chicken pieces.",
+    "cuisine": "Punjabi",
+    "course": "Main Course",
+    "diet": "Non-Vegetarian",
+    "prep_time": 25,
+    "cook_time": 35
+  }
+]
