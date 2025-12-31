@@ -46,3 +46,4 @@ app.*.map.json
 /android/app/release
 
 /ai_recipe_model/venv/
+/myenv/

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
@@ -13,8 +14,12 @@ Future<void> main() async {
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://bpenozctewzutdmiggkk.supabase.co', // Replace with your Supabase project URL
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwZW5vemN0ZXd6dXRkbWlnZ2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMzcxMTQsImV4cCI6MjA3MDkxMzExNH0.6BkfmaEOpj-CyWNn4f0PuPK654LQSJ5HnfEWJaRrnLU', // 🔑 Replace with your Supabase anon/public key
+    url: 'https://bpenozctewzutdmiggkk.supabase.co', //  Supabase project URL
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwZW5vemN0ZXd6dXRkbWlnZ2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMzcxMTQsImV4cCI6MjA3MDkxMzExNH0.6BkfmaEOpj-CyWNn4f0PuPK654LQSJ5HnfEWJaRrnLU', //  Supabase anon/public key
+     authOptions: FlutterAuthClientOptions(
+    detectSessionInUri: kIsWeb ? false : true,  // Disable on web
+  ),
+
   );
 
   runApp(const MyApp());
