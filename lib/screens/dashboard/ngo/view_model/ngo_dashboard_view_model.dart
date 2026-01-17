@@ -94,6 +94,11 @@ class NGODashboardViewModel {
     required Donation donation,
     required String userId,
     }) {
+      final alreadyClaimed = claimedDonations.any((d) => d.id == donation.id);
+      if (alreadyClaimed) 
+       {
+        throw Exception('Donation already claimed');
+       };
     // Remove from available list
     availableDonations.removeWhere((d) => d.id == donation.id);
 
