@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../models/user_profile.dart';
-import '../../models/inventory_item.dart';
-import '../../models/donation.dart';
-import '../../services/repositories/inventory_repository.dart';
-import '../../services/repositories/donation_repository.dart';
-import '../../services/supabase_service.dart';
-import '../../services/recipe_api_service.dart';
-import '../scanner_screen.dart';
-import '../../services/barcode_lookup_service.dart';
+import '../../../models/user_profile.dart';
+import '../../../models/inventory_item.dart';
+import '../../../models/donation.dart';
+import '../../../services/supabase_service.dart';
+import '../../../services/recipe_api_service.dart';
+import '../../scanner_screen.dart';
+import '../../../services/barcode_lookup_service.dart';
+import 'view_model/restaurant_dashboard_view_model.dart';
+import 'tabs/overview/restaurant_overview_tab.dart';
+import 'tabs/inventory/restaurant_inventory_tab.dart';
+import 'tabs/donations/restaurant_donations_tab.dart';
+import 'tabs/recipes/restaurant_recipes_tab.dart';
+import 'tabs/recipes/dialogs/recipe_generation_dialog.dart';
+import 'tabs/recipes/dialogs/advanced_recipe_dialog.dart';
+import 'tabs/recipes/dialogs/recipe_detail_dialog.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   final UserProfile profile;
@@ -20,141 +26,48 @@ class RestaurantDashboard extends StatefulWidget {
 
 class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerProviderStateMixin {
   late TabController _tabController;
-  final InventoryRepository _inventoryRepo = InventoryRepository();
-  final DonationRepository _donationRepo = DonationRepository();
+  late final RestaurantDashboardViewModel _viewModel ;
   
-  List<InventoryItem> _inventory = [];
-  List<Donation> _donations = [];
-  bool _isLoading = true;
 
-  Map<String, dynamic> _analytics = {
-    'totalWasteSaved': 0,
-    'donationsMade': 0,
-    'peopleHelped': 0,
-    'costSavings': 0,
-    'expiringSoon': 0,
-  };
+    @override
+    void initState() {
+      super.initState();
+      _tabController = TabController(length: 5, vsync: this);
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-    _loadData();
-  }
+      _viewModel = RestaurantDashboardViewModel();
+      _viewModel.addListener(_onViewModelChanged);
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+      _loadData();
+    }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      if (widget.profile.id == 'demo-user-id') {
-        await Future.delayed(const Duration(milliseconds: 500));
-        _inventory = _getMockInventory();
-        _donations = _getMockDonations();
-      } else {
-        _inventory = await _inventoryRepo.listInventory(widget.profile.id);
-        _donations = await _donationRepo.listMyRestaurantDonations(widget.profile.id);
+    void _onViewModelChanged() {
+      if (mounted) {
+        setState(() {});
       }
-      
-      // Calculate real-time analytics
-      _calculateAnalytics();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
     }
-  }
-
-  void _calculateAnalytics() {
-    // Calculate waste saved based on donations and inventory usage
-    double totalWasteSaved = 0;
-    int donationsMade = _donations.length;
-    int peopleHelped = 0;
-    double costSavings = 0;
-    int expiringSoon = 0;
-
-    // Calculate waste saved from donations
-    for (final donation in _donations) {
-      // Parse quantity string to double (assuming format like "5 kg" or "10")
-      final quantityStr = donation.quantity.replaceAll(RegExp(r'[^\d.]'), ''); // Remove non-numeric chars except decimal
-      final quantity = double.tryParse(quantityStr) ?? 0.0;
+    @override
+    void dispose() {
+      _viewModel.removeListener(_onViewModelChanged);
+      _tabController.dispose();
       
-      totalWasteSaved += quantity;
-      peopleHelped += (quantity / 2).round(); // Estimate people helped
-      costSavings += quantity * 2.5; // Estimate $2.5 per kg saved
+      super.dispose();
     }
 
-    // Calculate items expiring soon (within 3 days)
-    final now = DateTime.now();
-    for (final item in _inventory) {
-      final daysUntilExpiry = item.expiryDate.difference(now).inDays;
-      if (daysUntilExpiry <= 3 && daysUntilExpiry >= 0) {
-        expiringSoon++;
+    Future<void> _loadData() async {
+      try {
+        await _viewModel.loadData(
+          restaurantId: widget.profile.id,
+          isDemo: widget.profile.id == 'demo-user-id',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
       }
     }
 
-    // Add some waste saved from recipe generation (estimated)
-    totalWasteSaved += _inventory.length * 0.5; // Estimate 0.5kg saved per item through recipes
-
-    setState(() {
-      _analytics = {
-        'totalWasteSaved': totalWasteSaved.round(),
-        'donationsMade': donationsMade,
-        'peopleHelped': peopleHelped,
-        'costSavings': costSavings.round(),
-        'expiringSoon': expiringSoon,
-      };
-    });
-  }
-
-  List<InventoryItem> _getMockInventory() {
-    return [
-      InventoryItem(
-        id: '1',
-        restaurantId: widget.profile.id,
-        name: 'Fresh Tomatoes',
-        quantity: '15 kg',
-        category: 'Vegetables',
-        expiryDate: DateTime.now().add(const Duration(days: 2)),
-        status: 'available',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        updatedAt: DateTime.now(),
-      ),
-      InventoryItem(
-        id: '2',
-        restaurantId: widget.profile.id,
-        name: 'Bread Loaves',
-        quantity: '20 units',
-        category: 'Bread & Pastries',
-        expiryDate: DateTime.now().add(const Duration(days: 1)),
-        status: 'available',
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        updatedAt: DateTime.now(),
-      ),
-    ];
-  }
-
-  List<Donation> _getMockDonations() {
-    return [
-      Donation(
-        id: '1',
-        restaurantId: widget.profile.id,
-        title: 'Fresh Vegetables',
-        description: 'Assorted fresh vegetables',
-        quantity: '25 kg',
-        expiryDate: DateTime.now().add(const Duration(days: 2)),
-        status: 'available',
-        postedAt: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-    ];
-  }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -193,10 +106,26 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildOverviewTab(),
-          _buildInventoryTab(),
-          _buildDonationsTab(),
-          _buildRecipesTab(),
+          RestaurantOverviewTab(
+              viewModel: _viewModel,
+              restaurantName: widget.profile.name,
+              onNavigate: (index) => _tabController.animateTo(index),
+            ),
+          RestaurantInventoryTab(
+            viewModel: _viewModel,
+            onRefresh: _loadData,
+            onItemAction: _handleInventoryAction,
+          ),
+          RestaurantDonationsTab(
+            viewModel: _viewModel,
+            onRefresh: _loadData,
+            onDonationAction: _handleDonationAction,
+          ),
+          RestaurantRecipesTab(
+              viewModel: _viewModel,
+             onGenerateRecipe: _showRecipeGenerationDialog,
+             onGenerateAdvancedRecipe: _showAdvancedRecipeDialog,
+          ),
           _buildAnalyticsTab(),
         ],
       ),
@@ -205,1256 +134,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
-  Widget _buildOverviewTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final expiringSoon = _inventory.where((item) => item.expiryDate.difference(DateTime.now()).inDays <= 2).length;
-    final totalInventory = _inventory.length;
-    final activeDonations = _donations.where((d) => d.status == 'available').length;
-    final totalDonations = _donations.length;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Welcome Card
-          Card(
-            elevation: 4,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.green.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.recycling,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back, ${widget.profile.name}!',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'You\'re making a difference in reducing food waste.',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _buildQuickStat('Total Items', '$totalInventory', Icons.inventory),
-                        const SizedBox(width: 16),
-                        _buildQuickStat('Active Donations', '$activeDonations', Icons.favorite),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Stats Grid
-          Text(
-            'Dashboard Overview',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.2,
-            children: [
-              _buildClickableStatCard('Items Expiring Soon', '$expiringSoon', Icons.warning, Colors.orange, () => _tabController.animateTo(1)), // Navigate to Inventory
-              _buildClickableStatCard('Active Donations', '$activeDonations', Icons.favorite, Colors.red, () => _tabController.animateTo(2)), // Navigate to Donations
-              _buildClickableStatCard('Total Inventory', '$totalInventory', Icons.inventory, Colors.blue, () => _tabController.animateTo(1)), // Navigate to Inventory
-              _buildClickableStatCard('Total Donations', '$totalDonations', Icons.volunteer_activism, Colors.purple, () => _tabController.animateTo(2)), // Navigate to Donations
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Recent Activity
-          Text(
-            'Recent Activity',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildRecentActivityCard(),
-          const SizedBox(height: 20),
-
-          // Quick Actions
-          Text(
-            'Quick Actions',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildQuickActionsCard(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStat(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentActivityCard() {
-    final recentItems = _inventory.take(3).toList();
-    final recentDonations = _donations.take(2).toList();
-    
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.history, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Text(
-                  'Recent Activity',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: () => _tabController.animateTo(1), // Navigate to Inventory
-                  child: Text(
-                    'View All',
-                    style: TextStyle(
-                      color: Colors.blue[600],
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (recentItems.isEmpty && recentDonations.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'No recent activity. Start by adding inventory items!',
-                  style: TextStyle(color: Colors.grey[600]),
-                  textAlign: TextAlign.center,
-                ),
-              )
-            else ...[
-              // Show recent inventory items
-              if (recentItems.isNotEmpty) ...[
-                Text(
-                  'Recent Inventory Items',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...recentItems.map((item) => InkWell(
-                  onTap: () => _tabController.animateTo(1), // Navigate to Inventory
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.green.shade100,
-                          child: Icon(Icons.inventory, size: 16, color: Colors.green),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                              Text(
-                                '${item.quantity} • Expires in ${item.expiryDate.difference(DateTime.now()).inDays} days',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey[400]),
-                      ],
-                    ),
-                  ),
-                )).toList(),
-              ],
-              
-              // Show recent donations
-              if (recentDonations.isNotEmpty) ...[
-                if (recentItems.isNotEmpty) const SizedBox(height: 16),
-                Text(
-                  'Recent Donations',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...recentDonations.map((donation) => InkWell(
-                  onTap: () => _tabController.animateTo(2), // Navigate to Donations
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.red.shade100,
-                          child: Icon(Icons.favorite, size: 16, color: Colors.red),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                donation.title,
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                              Text(
-                                '${donation.quantity} • ${donation.status}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey[400]),
-                      ],
-                    ),
-                  ),
-                )).toList(),
-              ],
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.flash_on, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Text(
-                  'Quick Actions',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                    'Add Item',
-                    Icons.add,
-                    Colors.green,
-                    () => _showAddItemDialog(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionButton(
-                    'View Donations',
-                    Icons.favorite,
-                    Colors.red,
-                    () => _tabController.animateTo(2),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                  'Generate Recipes',
-                  Icons.restaurant_menu,
-                  Colors.orange,
-                  () => _tabController.animateTo(3), // Navigate to Recipes
-                ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionButton(
-                    'View Analytics',
-                    Icons.analytics,
-                    Colors.purple,
-                    () => _tabController.animateTo(4), // Navigate to Analytics
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onPressed) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(label, style: const TextStyle(color: Colors.white)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInventoryTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Column(
-      children: [
-        if (_inventory.any((item) => item.expiryDate.difference(DateTime.now()).inDays <= 2))
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              border: Border.all(color: Colors.orange),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.warning, color: Colors.orange),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${_inventory.where((item) => item.expiryDate.difference(DateTime.now()).inDays <= 2).length} items expiring soon!',
-                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadData,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _inventory.length,
-              itemBuilder: (context, index) {
-                final item = _inventory[index];
-                final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
-                
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: daysUntilExpiry <= 2 ? Colors.orange : Colors.green,
-                      child: Icon(
-                        daysUntilExpiry <= 2 ? Icons.warning : Icons.inventory,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(item.name),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Quantity: ${item.quantity}'),
-                        Text(
-                          'Category: ${item.category}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          'Expires: ${item.expiryDate.toString().split(' ')[0]} (${daysUntilExpiry} days)',
-                          style: TextStyle(
-                            color: daysUntilExpiry <= 2 ? Colors.orange : Colors.grey[600],
-                            fontWeight: daysUntilExpiry <= 2 ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: PopupMenuButton(
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Text('Edit'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'donate',
-                          child: Text('Post as Donation'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete'),
-                        ),
-                      ],
-                      onSelected: (value) => _handleInventoryAction(value, item),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDonationsTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.favorite, color: Colors.green),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Donations: ${_donations.length}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Active: ${_donations.where((d) => d.status == 'available').length}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadData,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _donations.length,
-              itemBuilder: (context, index) {
-                final donation = _donations[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: _getDonationStatusColor(donation.status),
-                      child: Icon(
-                        _getDonationStatusIcon(donation.status),
-                        color: Colors.white,
-                      ),
-                    ),
-                    title: Text(donation.title),
-                    subtitle: Text('Quantity: ${donation.quantity}'),
-                    trailing: PopupMenuButton(
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'view',
-                          child: Text('View Details'),
-                        ),
-                      ],
-                      onSelected: (value) => _handleDonationAction(value, donation),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecipesTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Clean Professional Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.restaurant_menu,
-                        color: Colors.purple,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Smart Recipe Generator',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Generate professional recipes from your inventory',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Inventory-based Recipe Generation
-          _buildInventoryRecipeGenerator(),
-          const SizedBox(height: 32),
-          
-          // Multi-Ingredient Recipe Generator
-          _buildMultiIngredientGenerator(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInventoryRecipeGenerator() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.inventory_2,
-                  color: Colors.blue,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Generate Recipe from Inventory',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Select an item from your inventory to generate a professional recipe:',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _inventory.isEmpty
-              ? Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No inventory items available',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Add some items to your inventory first',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.5,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: _inventory.length,
-                  itemBuilder: (context, index) {
-                    final item = _inventory[index];
-                    final isExpiring = item.expiryDate.difference(DateTime.now()).inDays <= 2;
-                    
-                    return GestureDetector(
-                      onTap: () => _showRecipeGenerationDialog(item),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isExpiring ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isExpiring ? Colors.orange : Colors.grey.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  _getCategoryIcon(item.category),
-                                  color: isExpiring ? Colors.orange : Colors.grey[600],
-                                  size: 20,
-                                ),
-                                const Spacer(),
-                                if (isExpiring)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'URGENT',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              item.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${item.quantity} • ${item.category}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                              ),
-                            ),
-                            const Spacer(),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.restaurant_menu,
-                                  color: Colors.purple,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Get Recipe',
-                                  style: TextStyle(
-                                    color: Colors.purple,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMultiIngredientGenerator() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Colors.green,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Multi-Ingredient Recipe Generator',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Generate complex recipes using multiple ingredients from your inventory:',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _inventory.length >= 2 ? _showAdvancedRecipeDialog : null,
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Generate Multi-Ingredient Recipe'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-          if (_inventory.length < 2) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Add at least 2 items to your inventory to use this feature',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickRecipeGenerator() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_awesome, color: Colors.purple[600]),
-                const SizedBox(width: 8),
-                Text(
-                  'Generate Recipe from Your Inventory',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_inventory.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.inventory_2, size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add inventory items to get AI recipe suggestions',
-                      style: TextStyle(color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              )
-            else
-              Column(
-                children: [
-                  Text(
-                    'Select items from your inventory to generate a recipe:',
-                    style: TextStyle(color: Colors.grey[700]),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _inventory.take(6).map((item) {
-                      return FilterChip(
-                        label: Text(item.name),
-                        selected: false,
-                        onSelected: (selected) {
-                          _showRecipeGenerationDialog(item);
-                        },
-                        avatar: Icon(
-                          _getCategoryIcon(item.category),
-                          size: 16,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showAdvancedRecipeDialog(),
-                      icon: Icon(Icons.auto_awesome, color: Colors.white),
-                      label: Text('Generate Smart Recipe', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpiringItemsRecipes() {
-    final expiringItems = _inventory.where((item) => 
-      item.expiryDate.difference(DateTime.now()).inDays <= 2
-    ).toList();
-
-    if (expiringItems.isEmpty) {
-      return Card(
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(Icons.check_circle, size: 48, color: Colors.green[400]),
-              const SizedBox(height: 8),
-              Text(
-                'Great! No items expiring soon.',
-                style: TextStyle(
-                  color: Colors.green[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: expiringItems.map((item) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.orange.shade100,
-              child: Icon(Icons.warning, color: Colors.orange),
-            ),
-            title: Text(item.name),
-            subtitle: Text('Expires in ${item.expiryDate.difference(DateTime.now()).inDays} days'),
-            trailing: ElevatedButton(
-              onPressed: () => _showRecipeForItem(item),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Get Recipe'),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildPopularRecipes() {
-    final popularRecipes = [
-      {
-        'name': 'Zero-Waste Vegetable Soup',
-        'rating': 4.8,
-        'time': '30 min',
-        'difficulty': 'Easy',
-        'ingredients': ['Any vegetables', 'Onions', 'Garlic', 'Stock'],
-        'description': 'Perfect for using up leftover vegetables',
-      },
-      {
-        'name': 'Stale Bread Pudding',
-        'rating': 4.6,
-        'time': '45 min',
-        'difficulty': 'Easy',
-        'ingredients': ['Stale bread', 'Eggs', 'Milk', 'Sugar', 'Cinnamon'],
-        'description': 'Transform stale bread into a delicious dessert',
-      },
-      {
-        'name': 'Fruit Compote',
-        'rating': 4.7,
-        'time': '20 min',
-        'difficulty': 'Easy',
-        'ingredients': ['Overripe fruits', 'Sugar', 'Lemon juice'],
-        'description': 'Use overripe fruits to make a sweet compote',
-      },
-    ];
-
-    return Column(
-      children: popularRecipes.map((recipe) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        recipe['name'] as String,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.amber, size: 16),
-                        Text(' ${recipe['rating']}'),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  recipe['description'] as String,
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildRecipeTag('${recipe['time']}', Icons.access_time, Colors.blue),
-                    const SizedBox(width: 8),
-                    _buildRecipeTag('${recipe['difficulty']}', Icons.speed, Colors.green),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => _showRecipeDetail(recipe),
-                      child: Text('View Recipe'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildWasteReductionTips() {
-    final tips = [
-      {
-        'title': 'First In, First Out (FIFO)',
-        'description': 'Use older inventory items before newer ones to prevent spoilage.',
-        'icon': Icons.swap_horiz,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Portion Control',
-        'description': 'Prepare smaller portions to reduce leftover waste.',
-        'icon': Icons.scale,
-        'color': Colors.green,
-      },
-      {
-        'title': 'Creative Leftovers',
-        'description': 'Transform yesterday\'s meals into new dishes.',
-        'icon': Icons.restaurant,
-        'color': Colors.orange,
-      },
-      {
-        'title': 'Smart Storage',
-        'description': 'Store items properly to extend their shelf life.',
-        'icon': Icons.kitchen,
-        'color': Colors.purple,
-      },
-    ];
-
-    return Column(
-      children: tips.map((tip) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: (tip['color'] as Color).withOpacity(0.1),
-              child: Icon(
-                tip['icon'] as IconData,
-                color: tip['color'] as Color,
-              ),
-            ),
-            title: Text(
-              tip['title'] as String,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(tip['description'] as String),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildRecipeTag(String text, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'fruits':
-        return Icons.apple;
-      case 'vegetables':
-        return Icons.eco;
-      case 'dairy':
-        return Icons.water_drop;
-      case 'bread & pastries':
-        return Icons.bakery_dining;
-      case 'canned goods':
-        return Icons.inventory;
-      case 'frozen foods':
-        return Icons.ac_unit;
-      default:
-        return Icons.restaurant;
-    }
-  }
-
   Widget _buildAnalyticsTab() {
-    if (_isLoading) {
+    if (_viewModel.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -1528,7 +209,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               Expanded(
                 child: _buildAnalyticsCard(
                   'Waste Saved',
-                  '${_analytics['totalWasteSaved']} kg',
+                  '${_viewModel.analytics['totalWasteSaved']} kg',
                   Icons.eco,
                   Colors.green,
                   'Food waste prevented',
@@ -1538,7 +219,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               Expanded(
                 child: _buildAnalyticsCard(
                   'Donations',
-                  '${_analytics['donationsMade']}',
+                  '${_viewModel.analytics['donationsMade']}',
                   Icons.favorite,
                   Colors.red,
                   'Items donated',
@@ -1552,7 +233,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               Expanded(
                 child: _buildAnalyticsCard(
                   'People Helped',
-                  '${_analytics['peopleHelped']}',
+                  '${_viewModel.analytics['peopleHelped']}',
                   Icons.people,
                   Colors.blue,
                   'Community members',
@@ -1562,7 +243,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               Expanded(
                 child: _buildAnalyticsCard(
                   'Cost Savings',
-                  '\$${_analytics['costSavings']}',
+                  '\$${_viewModel.analytics['costSavings']}',
                   Icons.attach_money,
                   Colors.orange,
                   'Money saved',
@@ -1591,69 +272,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              title,
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  
 
-  Widget _buildClickableStatCard(String title, String value, IconData icon, Color color, VoidCallback onTap) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              Text(
-                title,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 12,
-                color: color.withOpacity(0.7),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildAnalyticsCard(String title, String value, IconData icon, Color color, String subtitle) {
     return Card(
@@ -1791,7 +412,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
   }
 
   Widget _buildCategoryBreakdown() {
-    final categories = _inventory.fold<Map<String, int>>({}, (map, item) {
+    final categories = _viewModel.inventory.fold<Map<String, int>>({}, (map, item) {
       map[item.category] = (map[item.category] ?? 0) + 1;
       return map;
     });
@@ -1826,7 +447,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
   }
 
   Widget _buildCategoryItem(String category, int count) {
-    final total = _inventory.length;
+    final total = _viewModel.inventory.length;
     final percentage = total > 0 ? (count / total * 100).round() : 0;
     
     return Padding(
@@ -1982,7 +603,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                 Expanded(
                   child: _buildImpactItem(
                     'CO₂ Saved',
-                    '${(_analytics['totalWasteSaved'] * 2.5).round()} kg',
+                    '${(_viewModel.analytics['totalWasteSaved'] * 2.5).round()} kg',
                     Icons.cloud,
                     Colors.blue,
                   ),
@@ -1991,7 +612,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                 Expanded(
                   child: _buildImpactItem(
                     'Water Saved',
-                    '${(_analytics['totalWasteSaved'] * 1000).round()} L',
+                    '${(_viewModel.analytics['totalWasteSaved'] * 1000).round()} L',
                     Icons.water_drop,
                     Colors.cyan,
                   ),
@@ -2104,7 +725,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                 throw Exception('Invalid restaurant ID format. Expected UUID format.');
               }
               
-              final savedItem = await _inventoryRepo.addItem(
+              final savedItem = await _viewModel.addInventoryItem(
                 restaurantId: widget.profile.id, // Use profile ID directly
                 name: newItem.name,
                 quantity: newItem.quantity,
@@ -2114,17 +735,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               );
               print('Item saved to database: ${savedItem.id}'); // Debug log
                  setState(() {
-                   _inventory.add(savedItem);
+                   _viewModel.inventory.add(savedItem);
                  });
                  // Recalculate analytics after adding item
-                 _calculateAnalytics();
+                 _viewModel.calculateAnalytics();
                } else {
                  print('Using demo mode'); // Debug log
                  setState(() {
-                   _inventory.add(newItem);
+                   _viewModel.inventory.add(newItem);
                  });
                  // Recalculate analytics after adding item
-                 _calculateAnalytics();
+                 _viewModel.calculateAnalytics();
                }
             print('Item added successfully to inventory list'); // Debug log
           } catch (e) {
@@ -2164,27 +785,26 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         onItemUpdated: (updatedItem) async {
           try {
             if (widget.profile.id != 'demo-user-id') {
-              final savedItem = await _inventoryRepo.updateItem(
-                item.id,
-                {
-                  'name': updatedItem.name,
-                  'quantity': updatedItem.quantity,
-                  'category': updatedItem.category,
-                  'expiry_date': updatedItem.expiryDate.toIso8601String().split('T')[0],
-                  'status': updatedItem.status,
-                },
-              );
+                    final savedItem = await _viewModel.updateInventoryItem(
+                      itemId: item.id,
+                      name: updatedItem.name,
+                      quantity: updatedItem.quantity,
+                      category: updatedItem.category,
+                      expiryDate: updatedItem.expiryDate,
+                      status: updatedItem.status,
+                    );
+
               setState(() {
-                final index = _inventory.indexWhere((i) => i.id == item.id);
+                final index = _viewModel.inventory.indexWhere((i) => i.id == item.id);
                 if (index != -1) {
-                  _inventory[index] = savedItem;
+                  _viewModel.inventory[index] = savedItem;
                 }
               });
             } else {
               setState(() {
-                final index = _inventory.indexWhere((i) => i.id == item.id);
+                final index = _viewModel.inventory.indexWhere((i) => i.id == item.id);
                 if (index != -1) {
-                  _inventory[index] = updatedItem;
+                  _viewModel.inventory[index] = updatedItem;
                 }
               });
             }
@@ -2217,7 +837,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         onDonationPosted: (donation) async {
           try {
             if (widget.profile.id != 'demo-user-id') {
-              final savedDonation = await _donationRepo.postDonation(
+              final savedDonation = await _viewModel.addDonation(
                 restaurantId: widget.profile.id,
                 title: donation.title,
                 description: donation.description,
@@ -2226,17 +846,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               );
               if (savedDonation != null) {
                 setState(() {
-                  _donations.add(savedDonation);
+                  _viewModel.donations.add(savedDonation);
                 });
                 // Recalculate analytics after adding donation
-                _calculateAnalytics();
+                _viewModel.calculateAnalytics();
               }
             } else {
               setState(() {
-                _donations.add(donation);
+                _viewModel.donations.add(donation);
               });
               // Recalculate analytics after adding donation
-              _calculateAnalytics();
+              _viewModel.calculateAnalytics();
             }
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -2282,13 +902,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               Navigator.of(context).pop();
               try {
                 if (widget.profile.id != 'demo-user-id') {
-                  await _inventoryRepo.deleteItem(item.id);
+                  await _viewModel.deleteInventoryItem(
+                        itemId: item.id,
+                        restaurantId: widget.profile.id,
+                        isDemo: widget.profile.id == 'demo-user-id',
+                        );
                 }
                 setState(() {
-                  _inventory.removeWhere((i) => i.id == item.id);
+                  _viewModel.inventory.removeWhere((i) => i.id == item.id);
                 });
                 // Recalculate analytics after deleting item
-                _calculateAnalytics();
+                _viewModel.calculateAnalytics();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Item deleted successfully!'),
@@ -2524,480 +1148,33 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     }
   }
 
-  void _showRecipeGenerationDialog(InventoryItem item) async {
-    // Show loading dialog first
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('Finding recipes for ${item.name}...'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            const Text('Searching real recipe databases...'),
-          ],
-        ),
-      ),
-    );
-    
-    try {
-      // Generate real API-powered recipes
-      final aiRecipes = await _generateAIRecipe(item);
-      
-      // Close loading dialog
-      Navigator.of(context).pop();
-      
-      // Show results
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Real Recipes for ${item.name}'),
-          content: SizedBox(
-            width: 400,
-            height: 500,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Found ${aiRecipes.length} real recipes using your ingredients:',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: aiRecipes.isEmpty 
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No recipes found',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Try adding more ingredients to your inventory',
-                              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: aiRecipes.length,
-                        itemBuilder: (context, index) {
-                          final recipe = aiRecipes[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            child: Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  _showDetailedAIRecipe(recipe);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Header with icon and title
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: _getRecipeColor(recipe['difficulty']).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Icon(
-                                              _getRecipeIcon(recipe['type']),
-                                              color: _getRecipeColor(recipe['difficulty']),
-                                              size: 20,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              recipe['name'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 16,
-                                            color: Colors.grey[400],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      
-                                      // Description
-                                      Text(
-                                        recipe['description'],
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontSize: 14,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      
-                                      // Tags row
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 4,
-                                        children: [
-                                          _buildRecipeTag('${recipe['time']}', Icons.access_time, Colors.blue),
-                                          _buildRecipeTag('${recipe['difficulty']}', Icons.speed, Colors.green),
-                                          _buildRecipeTag('${recipe['wasteReduction']}% waste', Icons.eco, Colors.orange),
-                                        ],
-                                      ),
-                                      
-                                      // Source and cuisine
-                                      if (recipe['source'] != null) ...[
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Source: ${recipe['source']}',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            if (recipe['cuisine'] != null) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  recipe['cuisine'],
-                                                  style: TextStyle(
-                                                    color: Colors.blue[700],
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                            if (recipe['diet'] != null) ...[
-                                              const SizedBox(width: 4),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  recipe['diet'],
-                                                  style: TextStyle(
-                                                    color: Colors.green[700],
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            ElevatedButton(
-              onPressed: () => _showAdvancedRecipeDialog(),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-              child: const Text('Generate More', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      // Close loading dialog
-      Navigator.of(context).pop();
-      
-      // Show error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error fetching recipes: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  void _showRecipeGenerationDialog(InventoryItem item) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => RecipeGenerationDialog(
+      item: item,
+      generateRecipe: _generateAIRecipe,
+      onShowAdvanced: _showAdvancedRecipeDialog,
+    ),
+  );
+}
 
-  void _showAdvancedRecipeDialog() async {
-    // Show loading dialog first
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Generating Multi-Ingredient Recipes...'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            const Text('Searching professional recipe databases...'),
-          ],
-        ),
-      ),
-    );
-    
-    try {
-      // Use real API for multi-ingredient recipes
-      final multiIngredientRecipes = await RecipeApiService.getRecipesByIngredients(_inventory);
-      
-      // Close loading dialog
-      Navigator.of(context).pop();
-      
-      // Show results
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Multi-Ingredient Recipes'),
-          content: SizedBox(
-            width: 500,
-            height: 600,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Found ${multiIngredientRecipes.length} professional recipes using your ingredients:',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: multiIngredientRecipes.isEmpty 
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No recipes found',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Try adding more diverse ingredients to your inventory',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: multiIngredientRecipes.length,
-                        itemBuilder: (context, index) {
-                          final recipe = multiIngredientRecipes[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            child: Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  _showDetailedAIRecipe(recipe);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Header with icon and title
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: _getRecipeColor(recipe['difficulty']).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Icon(
-                                              _getRecipeIcon(recipe['type']),
-                                              color: _getRecipeColor(recipe['difficulty']),
-                                              size: 20,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              recipe['name'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 16,
-                                            color: Colors.grey[400],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      
-                                      // Description
-                                      Text(
-                                        recipe['description'],
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontSize: 14,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      
-                                      // Ingredients used
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[100],
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          'Uses: ${(recipe['ingredients'] as List<String>).join(', ')}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      
-                                      // Tags row
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 4,
-                                        children: [
-                                          _buildRecipeTag('${recipe['time']}', Icons.access_time, Colors.blue),
-                                          _buildRecipeTag('${recipe['difficulty']}', Icons.speed, Colors.green),
-                                          _buildRecipeTag('${recipe['wasteReduction']}% waste', Icons.eco, Colors.orange),
-                                        ],
-                                      ),
-                                      
-                                      // Source and cuisine
-                                      if (recipe['source'] != null) ...[
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Source: ${recipe['source']}',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            if (recipe['cuisine'] != null) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  recipe['cuisine'],
-                                                  style: TextStyle(
-                                                    color: Colors.blue[700],
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      // Close loading dialog
-      Navigator.of(context).pop();
-      
-      // Show error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error fetching multi-ingredient recipes: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+ void _showAdvancedRecipeDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AdvancedRecipeDialog(
+      inventory: _viewModel.inventory,
+      onRecipeSelected: _showDetailedAIRecipe,
+    ),
+  );
+}
+
 
   // Real API-based Recipe Generation
   Future<List<Map<String, dynamic>>> _generateAIRecipe(InventoryItem primaryItem) async {
-    final availableItems = _inventory.where((item) => item.id != primaryItem.id).toList();
+    final availableItems = _viewModel.inventory.where((item) => item.id != primaryItem.id).toList();
     final expiringItems = availableItems.where((item) => 
       item.expiryDate.difference(DateTime.now()).inDays <= 3
     ).toList();
@@ -3601,12 +1778,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
 
   List<Map<String, dynamic>> _generateMultiIngredientRecipes() {
     final recipes = <Map<String, dynamic>>[];
-    final expiringItems = _inventory.where((item) => 
+    final expiringItems = _viewModel.inventory.where((item) => 
       item.expiryDate.difference(DateTime.now()).inDays <= 2
     ).toList();
     
     // If no expiring items, use all available items
-    final availableItems = expiringItems.isNotEmpty ? expiringItems : _inventory;
+    final availableItems = expiringItems.isNotEmpty ? expiringItems : _viewModel.inventory;
     
     if (availableItems.length >= 2) {
       recipes.add({
@@ -3693,10 +1870,10 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     int urgency = 0;
     for (final name in ingredientNames) {
       // Find matching inventory item
-      final item = _inventory.firstWhere(
+      final item = _viewModel.inventory.firstWhere(
         (item) => item.name.toLowerCase().contains(name.toLowerCase()) || 
                   name.toLowerCase().contains(item.name.toLowerCase()),
-        orElse: () => _inventory.first, // fallback
+        orElse: () => _viewModel.inventory.first, // fallback
       );
       
       final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
@@ -3743,118 +1920,15 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     }
   }
 
-  void _showDetailedAIRecipe(Map<String, dynamic> recipe) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(recipe['name']),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                recipe['description'],
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              
-              // Recipe stats
-              Row(
-                children: [
-                  _buildRecipeTag('${recipe['time']}', Icons.access_time, Colors.blue),
-                  const SizedBox(width: 8),
-                  _buildRecipeTag('${recipe['difficulty']}', Icons.speed, Colors.green),
-                  const SizedBox(width: 8),
-                  _buildRecipeTag('${recipe['wasteReduction']}% waste reduction', Icons.eco, Colors.orange),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Ingredients
-              Text(
-                'Ingredients:',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              ...(recipe['ingredients'] as List<String>).map((ingredient) => 
-                Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.restaurant,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 8),
-                      Text(ingredient),
-                    ],
-                  ),
-                )
-              ).toList(),
-              const SizedBox(height: 16),
-              
-              // Instructions
-              Text(
-                'Instructions:',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              if (recipe['instructions'] is List)
-                ...(recipe['instructions'] as List<String>).map((instruction) => 
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(instruction),
-                  )
-                ).toList()
-              else
-                Text(recipe['instructions']),
-              const SizedBox(height: 16),
-              
-              // Nutritional info
-              if (recipe['nutritionalValue'] != null) ...[
-                Text(
-                  'Nutritional Value:',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(recipe['nutritionalValue']),
-                const SizedBox(height: 8),
-              ],
-              
-              // Serves
-              if (recipe['serves'] != null) ...[
-                Text(
-                  'Serves: ${recipe['serves']}',
-                  style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _markIngredientsAsUsed(recipe['ingredients'] as List<InventoryItem>);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Mark as Used', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+ void _showDetailedAIRecipe(Map<String, dynamic> recipe) {
+  showDialog(
+    context: context,
+    builder: (context) => RecipeDetailDialog(
+      recipe: recipe,
+      onMarkUsed: _markIngredientsAsUsed,
+    ),
+  );
+}
 
   void _markIngredientsAsUsed(List<InventoryItem> ingredients) {
     // This would mark ingredients as used in a real implementation
