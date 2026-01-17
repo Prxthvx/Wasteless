@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_profile.dart';
 import '../../services/notification_service.dart';
 import '../dashboard/restaurant_dashboard.dart';
-import '../dashboard/ngo_dashboard.dart';
+import '../dashboard/ngo/ngo_dashboard.dart';
 
 class DemoRolePickerScreen extends StatefulWidget {
   const DemoRolePickerScreen({super.key});

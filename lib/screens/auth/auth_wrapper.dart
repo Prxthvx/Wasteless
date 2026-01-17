@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
 import '../dashboard/restaurant_dashboard.dart';
-import '../dashboard/ngo_dashboard.dart';
+import '../dashboard/ngo/ngo_dashboard.dart';
 import '../welcome_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
