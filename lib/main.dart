@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
-import 'screens/welcome_screen.dart';
 import 'screens/welcome_screen_simple.dart';
 import 'screens/demo/demo_role_picker.dart';
 import 'screens/debug_screen.dart';
