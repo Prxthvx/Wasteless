@@ -5,12 +5,12 @@ import '../../../../../../models/inventory_item.dart';
 class InventoryRecipeGenerator extends StatelessWidget {
   
   final RestaurantDashboardViewModel viewModel;
-  final void Function(InventoryItem item) onGenerateRecipe;
+  final void Function(InventoryItem item) onSelectIngredients;
 
   const InventoryRecipeGenerator({
       super.key,
       required this.viewModel,
-      required this.onGenerateRecipe,
+      required this.onSelectIngredients,
     });
 
   IconData _getCategoryIcon(String category) {
@@ -21,9 +21,14 @@ class InventoryRecipeGenerator extends StatelessWidget {
       return Icons.apple;
     case 'dairy':
       return Icons.icecream;
+    case 'bread & pastries':
+      return Icons.bakery_dining;
+    case 'canned goods':
+      return Icons.inventory;
     case 'meat':
       return Icons.set_meal;
-    case 'bread':
+    case 'frozen foods':
+      return Icons.ac_unit;
     case 'bakery':
       return Icons.bakery_dining;
     default:
@@ -140,7 +145,7 @@ class InventoryRecipeGenerator extends StatelessWidget {
                       final isExpiring = item.expiryDate.difference(DateTime.now()).inDays <= 2;
                       
                       return GestureDetector(
-                        onTap: () => onGenerateRecipe(item),
+                        onTap: () => onSelectIngredients(item),
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(

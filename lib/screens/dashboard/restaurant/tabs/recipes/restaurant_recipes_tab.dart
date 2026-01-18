@@ -30,7 +30,7 @@ class RestaurantRecipesTab extends StatelessWidget {
         children:  [
           RecipesHeader(),
           SizedBox(height: 32),
-          InventoryRecipeGenerator(viewModel: viewModel, onGenerateRecipe: onGenerateRecipe),
+          InventoryRecipeGenerator(viewModel: viewModel, onSelectIngredients: onGenerateRecipe),
           SizedBox(height: 32),
           MultiIngredientRecipeGenerator(viewModel: viewModel, onGenerateAdvancedRecipe: onGenerateAdvancedRecipe,),
         ],

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/inventory_item.dart';
+import '../ml/recipe_predictor.dart';
 
 // Extension to capitalize first letter of string
 extension StringExtension on String {
@@ -21,19 +22,58 @@ class RecipeApiService {
   static Future<List<Map<String, dynamic>>> getRecipesByIngredients(List<InventoryItem> ingredients) async {
     try {
       // ALWAYS use local generator first - it's working great!
-      final localRecipes = _getSmartLocalRecipes(ingredients);
-      if (localRecipes.isNotEmpty) {
-        print('Using local generator - found ${localRecipes.length} recipes');
-        return localRecipes;
-      }
+      // final localRecipes = _getSmartLocalRecipes(ingredients);
+      // if (localRecipes.isNotEmpty) {
+      //   print('Using local generator - found ${localRecipes.length} recipes');
+      //   return localRecipes;
+      // }
       
-      // Only use APIs if local generator finds nothing (rare case)
-      print('Local generator found no recipes, trying APIs...');
+      final ingredientNames = ingredients.map((i) => i.name).toList();
+
+      final mlRecipeNames =
+          RecipePredictor.predictTopRecipes(ingredientNames);
+
+      if (mlRecipeNames.isNotEmpty) {
+        return mlRecipeNames.map((name) {
+          return {
+            'name': name,
+            'description': 'AI-generated recipe based on your inventory',
+            'time': '20 min',
+            'difficulty': 'Medium',
+            'type': 'main',
+            'wasteReduction': 95,
+            'ingredients': ingredientNames,
+            'instructions': [
+              '1. Prepare ingredients',
+              '2. Cook following standard technique',
+              '3. Adjust seasoning',
+              '4. Serve hot',
+            ],
+            'nutritionalValue': 'Balanced meal',
+            'serves': '2-3 people',
+            'source': 'Offline ML Model',
+          };
+        }).toList();
+      }
+
+      // 2️⃣ EXISTING LOCAL GENERATOR
+      final localRecipes = _getSmartLocalRecipes(ingredients);
+      if (localRecipes.isNotEmpty) return localRecipes;
+
+      // 3️⃣ APIs
       final apiRecipes = await _getRecipesFromMealDB(ingredients);
       if (apiRecipes.isNotEmpty) return apiRecipes;
-      
-      // Final fallback
+
+      // 4️⃣ Fallback
       return _getFallbackRecipes(ingredients);
+
+      // // Only use APIs if local generator finds nothing (rare case)
+      // print('Local generator found no recipes, trying APIs...');
+      // final apiRecipes = await _getRecipesFromMealDB(ingredients);
+      // if (apiRecipes.isNotEmpty) return apiRecipes;
+      
+      // // Final fallback
+      // return _getFallbackRecipes(ingredients);
     } catch (e) {
       print('Error fetching recipes: $e');
       return _getFallbackRecipes(ingredients);
