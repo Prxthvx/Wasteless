@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScannerScreen extends StatefulWidget {
-  final Function(String) onScanned;
 
-  const ScannerScreen({super.key, required this.onScanned});
+  const ScannerScreen({super.key});
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
@@ -34,12 +33,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
         controller: cameraController,
         onDetect: (capture) {
           if (_scanned) return;
+          
           for (final barcode in capture.barcodes) {
             final String? code = barcode.rawValue;
             if (code != null) {
               _scanned = true;
-              widget.onScanned(code);
-              Navigator.pop(context); // ✅ close scanner
+              Navigator.pop(context, code); // ✅ close scanner
               break;
             }
           }

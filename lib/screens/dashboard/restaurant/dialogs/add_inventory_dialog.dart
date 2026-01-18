@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../models/inventory_item.dart';
 import '../../../../models/user_profile.dart';
+import '../../../../services/barcode_lookup_service.dart';
+import '../../../scanner_screen.dart';
 
 class AddInventoryDialog extends StatefulWidget {
   final UserProfile profile;
@@ -106,6 +108,52 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
                   }
                 },
               ),
+              const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: const Text('Scan Barcode'),
+                      onPressed: () async {
+                          final result = await Navigator.push<String>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ScannerScreen(),
+                            ),
+                          );
+
+                          if (result == null || result.isEmpty) return;
+
+                          final product =
+                              await BarcodeLookupService.fetchProductFromBarcode(result);
+
+                          if (!mounted) return;
+
+                          setState(() {
+                            _nameController.text =
+                                product['name']?.trim().isNotEmpty == true
+                                    ? product['name']!
+                                    : 'Unknown Product';
+
+                            _quantityController.text =
+                                product['quantity']?.trim().isNotEmpty == true
+                                    ? product['quantity']!
+                                    : '1';
+
+                            const allowedCategories = [
+                              'Vegetables',
+                              'Fruits',
+                              'Dairy',
+                              'Bread & Pastries',
+                              'Canned Goods',
+                              'Frozen Foods',
+                              'Other',
+                            ];
+
+                            final apiCategory = product['category'] ?? 'Other';
+                            _category =
+                                allowedCategories.contains(apiCategory) ? apiCategory : 'Other';
+                          });
+                        },
+                    ),
             ],
           ),
         ),
@@ -122,4 +170,5 @@ class _AddInventoryDialogState extends State<AddInventoryDialog> {
       ],
     );
   }
+
 }
