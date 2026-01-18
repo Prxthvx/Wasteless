@@ -43,10 +43,20 @@ class RestaurantOverviewTab extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          const OverviewRecentActivity(),
+           OverviewRecentActivity(
+           recentInventory: viewModel.inventory.take(3).toList(),
+            recentDonations: viewModel.donations.take(2).toList(),
+            onViewInventory: () => onNavigate(1),
+            onViewDonations: () => onNavigate(2),
+          ),
           const SizedBox(height: 20),
 
-          const OverviewQuickActions(),
+          OverviewQuickActions(
+            onAddItem: () => onNavigate(1), // Inventory tab (FAB handles add)
+            onViewDonations: () => onNavigate(2),
+            onGenerateRecipes: () => onNavigate(3),
+            onViewAnalytics: () => onNavigate(4),
+          ),
         ],
       ),
     );
