@@ -15,6 +15,8 @@ import 'tabs/recipes/dialogs/recipe_generation_dialog.dart';
 import 'tabs/recipes/dialogs/advanced_recipe_dialog.dart';
 import 'tabs/recipes/dialogs/recipe_detail_dialog.dart';
 import 'tabs/analytics/restaurant_analytics.dart';
+import 'dialogs/add_inventory_flow.dart';
+import 'widgets/restaurant_dashboard_drawer.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   final UserProfile profile;
@@ -76,10 +78,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         title: Text('${widget.profile.name} Dashboard'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _showDrawer(),
-        ),
+        leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+                    },
+                  )   ,
+                ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
@@ -120,7 +126,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
           RestaurantDonationsTab(
             viewModel: _viewModel,
             onRefresh: _loadData,
-            onDonationAction: _handleDonationAction,
           ),
           RestaurantRecipesTab(
               viewModel: _viewModel,
@@ -130,78 +135,37 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
           RestaurantAnalyticsTab(viewModel: _viewModel),
         ],
       ),
-      drawer: _buildDrawer(),
+      drawer: RestaurantDashboardDrawer(
+        name: widget.profile.name,
+        role: widget.profile.role,
+        currentTab: _tabController.index,
+        onTabSelected: (index) => _tabController.animateTo(index),
+        onNotifications: _showNotifications,
+        onSettings: _showSettings,
+        onSignOut: _signOut,
+      ),
       floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
- 
-
+   
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
-      onPressed: () => _showAddItemDialog(),
+      onPressed: () => _onAddInventoryPressed(),
       backgroundColor: Colors.green,
       foregroundColor: Colors.white,
       child: const Icon(Icons.add),
     );
   }
 
-  void _showAddItemDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AddInventoryDialog(
-        profile: widget.profile,
-        onItemAdded: (newItem) async {
-          try {
-            print('Adding item: ${newItem.name}'); // Debug log
-            print('Profile ID: ${widget.profile.id}'); // Debug log
-            
-            if (widget.profile.id != 'demo-user-id') {
-              print('Using real database'); // Debug log
-              print('Profile ID type: ${widget.profile.id.runtimeType}'); // Debug log
-              print('Profile ID value: "${widget.profile.id}"'); // Debug log
-              
-              // Check if the profile ID looks like a valid UUID
-              if (widget.profile.id.length != 36 || !widget.profile.id.contains('-')) {
-                throw Exception('Invalid restaurant ID format. Expected UUID format.');
-              }
-              
-              final savedItem = await _viewModel.addInventoryItem(
-                restaurantId: widget.profile.id, // Use profile ID directly
-                name: newItem.name,
-                quantity: newItem.quantity,
-                expiryDate: newItem.expiryDate,
-                status: newItem.status,
-                category: newItem.category, // Added category parameter
-              );
-              print('Item saved to database: ${savedItem.id}'); // Debug log
-                 setState(() {
-                   _viewModel.inventory.add(savedItem);
-                 });
-                 // Recalculate analytics after adding item
-                 _viewModel.calculateAnalytics();
-               } else {
-                 print('Using demo mode'); // Debug log
-                 setState(() {
-                   _viewModel.inventory.add(newItem);
-                 });
-                 // Recalculate analytics after adding item
-                 _viewModel.calculateAnalytics();
-               }
-            print('Item added successfully to inventory list'); // Debug log
-          } catch (e) {
-            print('Error adding item: $e'); // Debug log
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error saving item: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-      ),
-    );
-  }
+  void _onAddInventoryPressed() {
+  showAddInventoryDialog(
+    context: context,
+    profile: widget.profile,
+    viewModel: _viewModel,
+  );
+}
+
 
   void _handleInventoryAction(String action, InventoryItem item) {
     switch (action) {
@@ -319,14 +283,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
-  void _handleDonationAction(String action, Donation donation) {
-    switch (action) {
-      case 'view':
-        // TODO: Implement view details
-        break;
-    }
-  }
-
   void _deleteInventoryItem(InventoryItem item) {
     showDialog(
       context: context,
@@ -376,6 +332,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
+
+
   void _showNotifications() {
     showDialog(
       context: context,
@@ -390,54 +348,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
-  void _showDrawer() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Menu'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: Text('Profile: ${widget.profile.name}'),
-              subtitle: Text(widget.profile.role.toUpperCase()),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: const Text('Notifications'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showNotifications();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showSettings();
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-              onTap: () => _signOut(),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _signOut() async {
     try {
       await SupabaseService.client.auth.signOut();
@@ -449,118 +359,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         SnackBar(content: Text('Error signing out: $e')),
       );
     }
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Colors.green,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.recycling,
-                  color: Colors.white,
-                  size: 48,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.profile.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  widget.profile.role.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard),
-            title: const Text('Dashboard'),
-            selected: _tabController.index == 0,
-            onTap: () {
-              _tabController.animateTo(0);
-              Navigator.of(context).pop();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.inventory),
-            title: const Text('Inventory'),
-            selected: _tabController.index == 1,
-            onTap: () {
-              _tabController.animateTo(1);
-              Navigator.of(context).pop();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Donations'),
-            selected: _tabController.index == 2,
-            onTap: () {
-              _tabController.animateTo(2);
-              Navigator.of(context).pop();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.restaurant_menu),
-            title: const Text('Recipes'),
-            selected: _tabController.index == 3,
-            onTap: () {
-              _tabController.animateTo(3);
-              Navigator.of(context).pop();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.analytics),
-            title: const Text('Analytics'),
-            selected: _tabController.index == 4,
-            onTap: () {
-              _tabController.animateTo(4);
-              Navigator.of(context).pop();
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.notifications),
-            title: const Text('Notifications'),
-            onTap: () {
-              Navigator.of(context).pop();
-              _showNotifications();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
-            onTap: () {
-              Navigator.of(context).pop();
-              _showSettings();
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.of(context).pop();
-              _signOut();
-            },
-          ),
-        ],
-      ),
-    );
   }
 
  
@@ -610,679 +408,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     return recipes.take(5).toList(); // Return top 5 recipes
   }
 
-  // Find ingredients that work well together
-  List<InventoryItem> _findCompatibleIngredients(InventoryItem primary, List<InventoryItem> available) {
-    final compatible = <InventoryItem>[];
-    
-    for (final item in available) {
-      if (_areIngredientsCompatible(primary, item)) {
-        compatible.add(item);
-      }
-    }
-    
-    return compatible;
-  }
-
-  // Check if two ingredients are compatible for cooking
-  bool _areIngredientsCompatible(InventoryItem item1, InventoryItem item2) {
-    final name1 = item1.name.toLowerCase();
-    final name2 = item2.name.toLowerCase();
-    final cat1 = item1.category.toLowerCase();
-    final cat2 = item2.category.toLowerCase();
-    
-    // Bread + protein combinations
-    if ((name1.contains('bread') || name1.contains('toast') || name1.contains('bun')) && 
-        (name2.contains('egg') || name2.contains('cheese') || name2.contains('meat') || name2.contains('chicken'))) {
-      return true;
-    }
-    if ((name2.contains('bread') || name2.contains('toast') || name2.contains('bun')) && 
-        (name1.contains('egg') || name1.contains('cheese') || name1.contains('meat') || name1.contains('chicken'))) {
-      return true;
-    }
-    
-    // Dairy + other ingredients
-    if ((cat1 == 'dairy' && cat2 != 'dairy') || (cat2 == 'dairy' && cat1 != 'dairy')) {
-      return true;
-    }
-    
-    // Vegetables + other vegetables
-    if (cat1 == 'vegetables' && cat2 == 'vegetables') {
-      return true;
-    }
-    
-    // Fruits + dairy (smoothies, desserts)
-    if ((cat1 == 'fruits' && cat2 == 'dairy') || (cat2 == 'fruits' && cat1 == 'dairy')) {
-      return true;
-    }
-    
-    // Fruits + other fruits
-    if (cat1 == 'fruits' && cat2 == 'fruits') {
-      return true;
-    }
-    
-    // Any ingredient with herbs/spices
-    if (name1.contains('herb') || name1.contains('spice') || name1.contains('garlic') || name1.contains('onion') ||
-        name2.contains('herb') || name2.contains('spice') || name2.contains('garlic') || name2.contains('onion')) {
-      return true;
-    }
-    
-    return false;
-  }
-
-  // Generate real recipes based on actual ingredients
-  List<Map<String, dynamic>> _generateRealRecipes(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Analyze primary ingredient and find real recipes
-    final primaryName = primary.name.toLowerCase();
-    final primaryCategory = primary.category.toLowerCase();
-    
-    // Bread-based recipes
-    if (primaryName.contains('bread') || primaryName.contains('toast') || primaryName.contains('bun')) {
-      recipes.addAll(_generateBreadBasedRecipes(primary, compatible, expiring));
-    }
-    
-    // Egg-based recipes
-    if (primaryName.contains('egg')) {
-      recipes.addAll(_generateEggBasedRecipes(primary, compatible, expiring));
-    }
-    
-    // Cheese-based recipes
-    if (primaryName.contains('cheese')) {
-      recipes.addAll(_generateCheeseBasedRecipes(primary, compatible, expiring));
-    }
-    
-    // Vegetable-based recipes
-    if (primaryCategory == 'vegetables') {
-      recipes.addAll(_generateVegetableBasedRecipes(primary, compatible, expiring));
-    }
-    
-    // Fruit-based recipes
-    if (primaryCategory == 'fruits') {
-      recipes.addAll(_generateFruitBasedRecipes(primary, compatible, expiring));
-    }
-    
-    // Generic combinations
-    if (recipes.isEmpty) {
-      recipes.addAll(_generateGenericCombinations(primary, compatible, expiring));
-    }
-    
-    return recipes;
-  }
-
-  void _showRecipeForItem(InventoryItem item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Recipe for ${item.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Here are some recipe ideas for your ${item.name}:'),
-            const SizedBox(height: 16),
-            _buildRecipeSuggestion(item),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecipeSuggestion(InventoryItem item) {
-    final suggestions = _getRecipeSuggestions(item.category);
-    
-    return Column(
-      children: suggestions.map((suggestion) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            title: Text(suggestion['name']),
-            subtitle: Text(suggestion['description']),
-            trailing: Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.of(context).pop();
-              _showRecipeDetail(suggestion);
-            },
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  List<Map<String, dynamic>> _getRecipeSuggestions(String category) {
-    switch (category.toLowerCase()) {
-      case 'fruits':
-        return [
-          {
-            'name': 'Fruit Smoothie',
-            'description': 'Blend with yogurt and honey',
-            'time': '5 min',
-            'difficulty': 'Easy',
-            'ingredients': ['Any fruits', 'Yogurt', 'Honey'],
-            'instructions': '1. Blend all ingredients\n2. Serve chilled',
-          },
-          {
-            'name': 'Fruit Salad',
-            'description': 'Fresh fruit combination',
-            'time': '10 min',
-            'difficulty': 'Easy',
-            'ingredients': ['Mixed fruits', 'Lemon juice', 'Mint'],
-            'instructions': '1. Cut fruits into pieces\n2. Add lemon juice\n3. Garnish with mint',
-          },
-        ];
-      case 'vegetables':
-        return [
-          {
-            'name': 'Vegetable Stir-fry',
-            'description': 'Quick and healthy stir-fry',
-            'time': '15 min',
-            'difficulty': 'Easy',
-            'ingredients': ['Any vegetables', 'Garlic', 'Soy sauce', 'Oil'],
-            'instructions': '1. Heat oil in pan\n2. Add garlic\n3. Add vegetables\n4. Season with soy sauce',
-          },
-          {
-            'name': 'Roasted Vegetables',
-            'description': 'Oven-roasted vegetable medley',
-            'time': '30 min',
-            'difficulty': 'Easy',
-            'ingredients': ['Any vegetables', 'Olive oil', 'Salt', 'Herbs'],
-            'instructions': '1. Preheat oven\n2. Toss vegetables with oil\n3. Roast for 25-30 min',
-          },
-        ];
-      case 'dairy':
-        return [
-          {
-            'name': 'Cheese Sauce',
-            'description': 'Versatile cheese sauce',
-            'time': '10 min',
-            'difficulty': 'Easy',
-            'ingredients': ['Cheese', 'Milk', 'Butter', 'Flour'],
-            'instructions': '1. Melt butter\n2. Add flour\n3. Add milk gradually\n4. Add cheese',
-          },
-        ];
-      default:
-        return [
-          {
-            'name': 'Creative Leftover Dish',
-            'description': 'Transform your ${category.toLowerCase()} into something new',
-            'time': '20 min',
-            'difficulty': 'Easy',
-            'ingredients': ['Your item', 'Basic seasonings'],
-            'instructions': '1. Assess the item\n2. Add seasonings\n3. Cook creatively',
-          },
-        ];
-    }
-  }
-
-  void _showRecipeDetail(Map<String, dynamic> recipe) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(recipe['name']),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                recipe['description'],
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Ingredients:',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              ...(recipe['ingredients'] as List).map((ingredient) => 
-                Text('• $ingredient')).toList(),
-              const SizedBox(height: 16),
-              Text(
-                'Instructions:',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(recipe['instructions']),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Real recipe generators based on actual ingredients
-  List<Map<String, dynamic>> _generateBreadBasedRecipes(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Find compatible ingredients
-    final eggs = compatible.where((item) => item.name.toLowerCase().contains('egg')).toList();
-    final cheese = compatible.where((item) => item.name.toLowerCase().contains('cheese')).toList();
-    final meat = compatible.where((item) => 
-      item.name.toLowerCase().contains('chicken') || 
-      item.name.toLowerCase().contains('meat') || 
-      item.name.toLowerCase().contains('ham')
-    ).toList();
-    
-    // Egg Sandwich
-    if (eggs.isNotEmpty) {
-      final ingredients = [primary, eggs.first];
-      if (cheese.isNotEmpty) ingredients.add(cheese.first);
-      
-      recipes.add({
-        'name': 'Classic Egg Sandwich',
-        'description': 'Perfect breakfast sandwich with ${eggs.first.name} and ${primary.name}',
-        'time': '10 min',
-        'difficulty': 'Easy',
-        'type': 'main',
-        'wasteReduction': 95,
-        'ingredients': ingredients,
-        'instructions': '1. Toast the ${primary.name} until golden\n2. Scramble the ${eggs.first.name} with salt and pepper\n3. ${cheese.isNotEmpty ? 'Add ${cheese.first.name} to the egg while cooking' : ''}\n4. Assemble sandwich and serve hot',
-        'nutritionalValue': 'High protein breakfast with carbs for energy',
-        'serves': '1-2 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateEggBasedRecipes(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Find compatible ingredients
-    final bread = compatible.where((item) => 
-      item.name.toLowerCase().contains('bread') || 
-      item.name.toLowerCase().contains('toast')
-    ).toList();
-    final cheese = compatible.where((item) => item.name.toLowerCase().contains('cheese')).toList();
-    final vegetables = compatible.where((item) => item.category.toLowerCase() == 'vegetables').toList();
-    
-    // Scrambled Eggs
-    final scrambledIngredients = [primary];
-    if (cheese.isNotEmpty) scrambledIngredients.add(cheese.first);
-    if (vegetables.isNotEmpty) scrambledIngredients.add(vegetables.first);
-    
-    recipes.add({
-      'name': 'Scrambled Eggs',
-      'description': 'Creamy scrambled ${primary.name}${cheese.isNotEmpty ? ' with ${cheese.first.name}' : ''}${vegetables.isNotEmpty ? ' and ${vegetables.first.name}' : ''}',
-      'time': '8 min',
-      'difficulty': 'Easy',
-      'type': 'main',
-      'wasteReduction': 95,
-      'ingredients': scrambledIngredients,
-      'instructions': '1. Beat the ${primary.name} in a bowl\n2. ${cheese.isNotEmpty ? 'Add grated ${cheese.first.name}' : ''}\n3. ${vegetables.isNotEmpty ? 'Sauté ${vegetables.first.name} first, then add eggs' : 'Heat butter in a pan'}\n4. Cook eggs slowly, stirring constantly\n5. Season with salt and pepper, serve hot',
-      'nutritionalValue': 'High protein breakfast with essential amino acids',
-      'serves': '1-2 people',
-    });
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateCheeseBasedRecipes(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Find compatible ingredients
-    final vegetables = compatible.where((item) => item.category.toLowerCase() == 'vegetables').toList();
-    final bread = compatible.where((item) => 
-      item.name.toLowerCase().contains('bread') || 
-      item.name.toLowerCase().contains('toast')
-    ).toList();
-    
-    // Cheese Sauce
-    recipes.add({
-      'name': 'Homemade Cheese Sauce',
-      'description': 'Versatile ${primary.name} sauce perfect for pasta, vegetables, or nachos',
-      'time': '15 min',
-      'difficulty': 'Easy',
-      'type': 'sauce',
-      'wasteReduction': 95,
-      'ingredients': [primary],
-      'instructions': '1. Melt butter in a saucepan\n2. Add flour and cook for 1 minute\n3. Gradually whisk in milk\n4. Add ${primary.name} and stir until smooth\n5. Season with salt, pepper, and mustard\n6. Serve over pasta or vegetables',
-      'nutritionalValue': 'High in protein and calcium',
-      'serves': '4-6 people',
-    });
-    
-    // Cheese and Vegetable Casserole
-    if (vegetables.isNotEmpty) {
-      final ingredients = [primary, ...vegetables.take(2)];
-      
-      recipes.add({
-        'name': 'Cheese and Vegetable Casserole',
-        'description': 'Baked casserole with ${primary.name} and ${vegetables.map((e) => e.name).join(', ')}',
-        'time': '45 min',
-        'difficulty': 'Medium',
-        'type': 'main',
-        'wasteReduction': 90,
-        'ingredients': ingredients,
-        'instructions': '1. Preheat oven to 375°F\n2. ${vegetables.map((e) => 'Slice ${e.name}').join(' and ')}\n3. Layer vegetables in a baking dish\n4. Sprinkle with ${primary.name}\n5. Bake for 30-35 minutes until golden\n6. Let rest 5 minutes before serving',
-        'nutritionalValue': 'Complete meal with vegetables and dairy',
-        'serves': '4-6 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateVegetableBasedRecipes(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Find compatible ingredients
-    final otherVegetables = compatible.where((item) => item.category.toLowerCase() == 'vegetables').toList();
-    final cheese = compatible.where((item) => item.name.toLowerCase().contains('cheese')).toList();
-    
-    // Vegetable Stir-fry
-    if (otherVegetables.isNotEmpty) {
-      final ingredients = [primary, ...otherVegetables.take(3)];
-      
-      recipes.add({
-        'name': 'Mixed Vegetable Stir-fry',
-        'description': 'Quick stir-fry with ${primary.name} and ${otherVegetables.map((e) => e.name).join(', ')}',
-        'time': '15 min',
-        'difficulty': 'Easy',
-        'type': 'main',
-        'wasteReduction': 95,
-        'ingredients': ingredients,
-        'instructions': '1. Heat oil in a large wok or pan\n2. Add garlic and ginger, cook 30 seconds\n3. Add ${primary.name} and cook 2-3 minutes\n4. Add ${otherVegetables.map((e) => e.name).join(', ')} in order of cooking time\n5. Season with soy sauce and sesame oil\n6. Serve immediately over rice',
-        'nutritionalValue': 'High in vitamins, fiber, and antioxidants',
-        'serves': '3-4 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateFruitBasedRecipes(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Find compatible ingredients
-    final otherFruits = compatible.where((item) => item.category.toLowerCase() == 'fruits').toList();
-    final dairy = compatible.where((item) => item.category.toLowerCase() == 'dairy').toList();
-    
-    // Fruit Smoothie
-    if (dairy.isNotEmpty) {
-      final ingredients = [primary];
-      if (otherFruits.isNotEmpty) ingredients.add(otherFruits.first);
-      ingredients.add(dairy.first);
-      
-      recipes.add({
-        'name': 'Fresh Fruit Smoothie',
-        'description': 'Nutritious smoothie with ${primary.name}${otherFruits.isNotEmpty ? ', ${otherFruits.first.name}' : ''} and ${dairy.first.name}',
-        'time': '5 min',
-        'difficulty': 'Easy',
-        'type': 'beverage',
-        'wasteReduction': 95,
-        'ingredients': ingredients,
-        'instructions': '1. Peel and chop ${primary.name}${otherFruits.isNotEmpty ? ' and ${otherFruits.first.name}' : ''}\n2. Add to blender with ${dairy.first.name}\n3. Add honey or sugar to taste\n4. Blend until smooth and creamy\n5. Serve immediately over ice',
-        'nutritionalValue': 'High in vitamins, antioxidants, and probiotics',
-        'serves': '2-3 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateGenericCombinations(InventoryItem primary, List<InventoryItem> compatible, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Create a simple combination recipe
-    final ingredients = [primary];
-    if (compatible.isNotEmpty) ingredients.add(compatible.first);
-    
-    recipes.add({
-      'name': 'Creative ${primary.name} Dish',
-      'description': 'Simple and delicious way to use ${primary.name}${compatible.isNotEmpty ? ' with ${compatible.first.name}' : ''}',
-      'time': '20 min',
-      'difficulty': 'Easy',
-      'type': 'main',
-      'wasteReduction': 85,
-      'ingredients': ingredients,
-      'instructions': '1. Prepare ${primary.name} as desired\n2. ${compatible.isNotEmpty ? 'Add ${compatible.first.name} for extra flavor' : 'Season with salt and pepper'}\n3. Cook using your preferred method\n4. Taste and adjust seasoning\n5. Serve hot and enjoy',
-      'nutritionalValue': 'Nutritious meal using available ingredients',
-      'serves': '2-3 people',
-    });
-    
-    return recipes;
-  }
-
-  // Legacy method - keeping for compatibility
-  List<Map<String, dynamic>> _generateFruitRecipes(InventoryItem primary, List<InventoryItem> available, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Fruit Smoothie with expiring items
-    final smoothieIngredients = [primary];
-    final expiringFruits = expiring.where((item) => item.category.toLowerCase() == 'fruits').take(2).toList();
-    smoothieIngredients.addAll(expiringFruits);
-    
-    if (smoothieIngredients.length > 1) {
-      recipes.add({
-        'name': 'Zero-Waste Fruit Smoothie',
-        'description': 'Blend ${smoothieIngredients.map((e) => e.name).join(', ')} with yogurt and honey',
-        'time': '5 min',
-        'difficulty': 'Easy',
-        'type': 'beverage',
-        'wasteReduction': 95,
-        'ingredients': smoothieIngredients,
-        'instructions': '1. Peel and chop all fruits\n2. Add to blender with yogurt and honey\n3. Blend until smooth\n4. Serve immediately',
-        'nutritionalValue': 'High in vitamins and antioxidants',
-        'serves': '2-3 people',
-      });
-    }
-    
-    // Fruit Salad with multiple items
-    final saladIngredients = [primary];
-    final otherFruits = available.where((item) => 
-      item.category.toLowerCase() == 'fruits' && item.id != primary.id
-    ).take(3).toList();
-    saladIngredients.addAll(otherFruits);
-    
-    if (saladIngredients.length > 1) {
-      recipes.add({
-        'name': 'Rainbow Fruit Salad',
-        'description': 'Fresh combination of ${saladIngredients.map((e) => e.name).join(', ')}',
-        'time': '10 min',
-        'difficulty': 'Easy',
-        'type': 'salad',
-        'wasteReduction': 90,
-        'ingredients': saladIngredients,
-        'instructions': '1. Wash and cut all fruits into bite-sized pieces\n2. Mix gently in a bowl\n3. Add lemon juice and mint\n4. Chill before serving',
-        'nutritionalValue': 'Rich in fiber and natural sugars',
-        'serves': '4-6 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateVegetableRecipes(InventoryItem primary, List<InventoryItem> available, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Vegetable Stir-fry with expiring items
-    final stirFryIngredients = [primary];
-    final expiringVeggies = expiring.where((item) => item.category.toLowerCase() == 'vegetables').take(3).toList();
-    stirFryIngredients.addAll(expiringVeggies);
-    
-    if (stirFryIngredients.length > 1) {
-      recipes.add({
-        'name': 'Emergency Vegetable Stir-fry',
-        'description': 'Quick stir-fry using ${stirFryIngredients.map((e) => e.name).join(', ')}',
-        'time': '15 min',
-        'difficulty': 'Easy',
-        'type': 'main',
-        'wasteReduction': 95,
-        'ingredients': stirFryIngredients,
-        'instructions': '1. Heat oil in a large pan\n2. Add garlic and ginger\n3. Add vegetables in order of cooking time\n4. Season with soy sauce and sesame oil\n5. Serve immediately',
-        'nutritionalValue': 'High in vitamins and fiber',
-        'serves': '2-4 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateDairyRecipes(InventoryItem primary, List<InventoryItem> available, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Cheese-based recipes
-    if (primary.name.toLowerCase().contains('cheese')) {
-      recipes.add({
-        'name': 'Quick Cheese Sauce',
-        'description': 'Versatile sauce using ${primary.name}',
-        'time': '10 min',
-        'difficulty': 'Easy',
-        'type': 'sauce',
-        'wasteReduction': 95,
-        'ingredients': [primary],
-        'instructions': '1. Melt butter in a pan\n2. Add flour and cook for 1 minute\n3. Gradually add milk\n4. Add cheese and stir until smooth\n5. Season to taste',
-        'nutritionalValue': 'High in protein and calcium',
-        'serves': '4-6 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateBreadRecipes(InventoryItem primary, List<InventoryItem> available, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    // Stale bread recipes
-    if (primary.expiryDate.difference(DateTime.now()).inDays <= 1) {
-      recipes.add({
-        'name': 'Bread Pudding Delight',
-        'description': 'Transform stale ${primary.name} into a delicious dessert',
-        'time': '45 min',
-        'difficulty': 'Medium',
-        'type': 'dessert',
-        'wasteReduction': 100,
-        'ingredients': [primary],
-        'instructions': '1. Cut bread into cubes\n2. Mix with eggs, milk, and sugar\n3. Add vanilla and cinnamon\n4. Bake at 350°F for 30 minutes\n5. Serve warm',
-        'nutritionalValue': 'Comfort food with protein and carbs',
-        'serves': '6-8 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateGenericRecipes(InventoryItem primary, List<InventoryItem> available, List<InventoryItem> expiring) {
-    final recipes = <Map<String, dynamic>>[];
-    
-    recipes.add({
-      'name': 'Creative Leftover Transformation',
-      'description': 'Transform ${primary.name} into something new',
-      'time': '20 min',
-      'difficulty': 'Easy',
-      'type': 'main',
-      'wasteReduction': 85,
-      'ingredients': [primary],
-      'instructions': '1. Assess the condition of ${primary.name}\n2. Remove any bad parts\n3. Season creatively\n4. Cook with complementary ingredients\n5. Serve with confidence',
-      'nutritionalValue': 'Maximizes nutrition from available ingredients',
-      'serves': '2-4 people',
-    });
-    
-    return recipes;
-  }
-
-  List<Map<String, dynamic>> _generateMultiIngredientRecipes() {
-    final recipes = <Map<String, dynamic>>[];
-    final expiringItems = _viewModel.inventory.where((item) => 
-      item.expiryDate.difference(DateTime.now()).inDays <= 2
-    ).toList();
-    
-    // If no expiring items, use all available items
-    final availableItems = expiringItems.isNotEmpty ? expiringItems : _viewModel.inventory;
-    
-    if (availableItems.length >= 2) {
-      recipes.add({
-        'name': 'Zero-Waste Feast',
-        'description': 'Complete meal using ${availableItems.map((e) => e.name).join(', ')}',
-        'time': '45 min',
-        'difficulty': 'Medium',
-        'type': 'main',
-        'wasteReduction': 100,
-        'ingredients': availableItems,
-        'instructions': '1. Sort ingredients by cooking time\n2. Start with longest-cooking items\n3. Add shorter-cooking items progressively\n4. Season and serve as a complete meal',
-        'nutritionalValue': 'Complete nutrition from diverse ingredients',
-        'serves': '4-6 people',
-      });
-    }
-    
-    // Add category-specific multi-ingredient recipes
-    if (availableItems.length >= 3) {
-      final fruits = availableItems.where((item) => item.category.toLowerCase() == 'fruits').toList();
-      final vegetables = availableItems.where((item) => item.category.toLowerCase() == 'vegetables').toList();
-      
-      if (fruits.length >= 2) {
-        recipes.add({
-          'name': 'Tropical Fruit Medley',
-          'description': 'Fresh combination of ${fruits.map((e) => e.name).join(', ')}',
-          'time': '15 min',
-          'difficulty': 'Easy',
-          'type': 'salad',
-          'wasteReduction': 95,
-          'ingredients': fruits,
-          'instructions': '1. Wash and prepare all fruits\n2. Cut into bite-sized pieces\n3. Mix with lemon juice and honey\n4. Chill and serve',
-          'nutritionalValue': 'High in vitamins and natural sugars',
-          'serves': '4-6 people',
-        });
-      }
-      
-      if (vegetables.length >= 3) {
-        recipes.add({
-          'name': 'Garden Vegetable Stir-fry',
-          'description': 'Quick stir-fry using ${vegetables.map((e) => e.name).join(', ')}',
-          'time': '20 min',
-          'difficulty': 'Easy',
-          'type': 'main',
-          'wasteReduction': 90,
-          'ingredients': vegetables,
-          'instructions': '1. Heat oil in a large wok\n2. Add vegetables in order of cooking time\n3. Season with soy sauce and garlic\n4. Serve over rice or noodles',
-          'nutritionalValue': 'High in fiber and vitamins',
-          'serves': '3-4 people',
-        });
-      }
-    }
-    
-    // If still no recipes, add a generic one
-    if (recipes.isEmpty && availableItems.isNotEmpty) {
-      recipes.add({
-        'name': 'Creative Leftover Transformation',
-        'description': 'Transform your available ingredients into something delicious',
-        'time': '25 min',
-        'difficulty': 'Easy',
-        'type': 'main',
-        'wasteReduction': 85,
-        'ingredients': availableItems.take(3).toList(),
-        'instructions': '1. Assess all available ingredients\n2. Remove any bad parts\n3. Season creatively with herbs and spices\n4. Cook using your preferred method\n5. Serve with confidence',
-        'nutritionalValue': 'Maximizes nutrition from available ingredients',
-        'serves': '2-4 people',
-      });
-    }
-    
-    return recipes;
-  }
-
-  int _calculateUrgency(List<InventoryItem> ingredients) {
-    int urgency = 0;
-    for (final item in ingredients) {
-      final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
-      if (daysUntilExpiry <= 1) urgency += 100;
-      else if (daysUntilExpiry <= 2) urgency += 80;
-      else if (daysUntilExpiry <= 3) urgency += 60;
-    }
-    return urgency;
-  }
-
+  
   int _calculateUrgencyFromNames(List<String> ingredientNames) {
     int urgency = 0;
     for (final name in ingredientNames) {
@@ -1301,41 +427,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     return urgency;
   }
 
-  Color _getRecipeColor(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return Colors.green;
-      case 'medium':
-        return Colors.orange;
-      case 'hard':
-        return Colors.red;
-      default:
-        return Colors.blue;
-    }
-  }
 
-  IconData _getRecipeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'beverage':
-        return Icons.local_drink;
-      case 'salad':
-        return Icons.eco;
-      case 'dessert':
-        return Icons.cake;
-      case 'main':
-        return Icons.restaurant;
-      case 'side':
-        return Icons.dining;
-      case 'soup':
-        return Icons.soup_kitchen;
-      case 'sauce':
-        return Icons.water_drop;
-      case 'ingredient':
-        return Icons.inventory;
-      default:
-        return Icons.restaurant_menu;
-    }
-  }
+ 
 
  void _showDetailedAIRecipe(Map<String, dynamic> recipe) {
   showDialog(

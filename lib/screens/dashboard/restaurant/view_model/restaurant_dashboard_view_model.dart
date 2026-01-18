@@ -231,4 +231,33 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
   return updatedItem;
 }
 
+Future<void> addInventory(InventoryItem item, String restaurantId) async {
+  if (restaurantId != 'demo-user-id') {
+    _validateRestaurantId(restaurantId);
+
+    final savedItem = await addInventoryItem(
+      restaurantId: restaurantId,
+      name: item.name,
+      quantity: item.quantity,
+      expiryDate: item.expiryDate,
+      status: item.status,
+      category: item.category,
+    );
+
+    inventory.add(savedItem);
+  } else {
+    inventory.add(item);
+  }
+
+  calculateAnalytics();
+  notifyListeners();
+}
+
+void _validateRestaurantId(String id) {
+  if (id.length != 36 || !id.contains('-')) {
+    throw Exception('Invalid restaurant ID format');
+  }
+}
+
+
 }
