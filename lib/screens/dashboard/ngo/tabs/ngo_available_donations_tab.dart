@@ -134,6 +134,7 @@ class _DonationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final daysUntilExpiry =
         donation.expiryDate.difference(DateTime.now()).inDays;
+    final isExpired = donation.expiryDate.isBefore(DateTime.now());
 
     final isUrgent = daysUntilExpiry <= 2;
 
@@ -171,12 +172,12 @@ class _DonationCard extends StatelessWidget {
           ],
         ),
         trailing: ElevatedButton(
-          onPressed: () => onClaim(donation),
+          onPressed: isExpired ? null :() => onClaim(donation),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Claim'),
+          child: Text(isExpired ? 'Expired' : 'Claim'),
         ),
       ),
     );
