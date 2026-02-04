@@ -463,7 +463,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                           children: [
                             Text('Quantity: ${item.quantity}'),
                             Text(
-                              'Expires: ${item.expiryDate.toString().split(' ')[0]} (${daysUntilExpiry} days)',
+                              'Expires: ${item.expiryDate.toString().split(' ')[0]} ($daysUntilExpiry days)',
                               style: TextStyle(
                                 color: daysUntilExpiry <= 2 ? Colors.orange : Colors.grey[600],
                                 fontWeight: daysUntilExpiry <= 2 ? FontWeight.bold : FontWeight.normal,

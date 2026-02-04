@@ -166,6 +166,7 @@ class RecipeApiService {
   }
   
   // Get recipes from Spoonacular (requires API key)
+  // ignore: unused_element
   static Future<List<Map<String, dynamic>>> _getRecipesFromSpoonacular(List<InventoryItem> ingredients) async {
     final ingredientNames = ingredients.map((i) => i.name).join(',');
     
@@ -567,9 +568,9 @@ class RecipeApiService {
       'ingredients': [...proteins, ...vegetables].map((i) => i.name).toList(),
       'instructions': [
         '1. Heat oil in a large pan over high heat',
-        '2. Cut ${protein} into bite-sized pieces',
-        '3. Add ${protein} to pan and cook for 3-4 minutes',
-        '4. Add ${vegetable} and continue cooking for 5-6 minutes',
+        '2. Cut $protein into bite-sized pieces',
+        '3. Add $protein to pan and cook for 3-4 minutes',
+        '4. Add $vegetable and continue cooking for 5-6 minutes',
         '5. Season with salt, pepper, and your favorite spices',
         '6. Serve hot over rice or bread'
       ],
@@ -594,10 +595,10 @@ class RecipeApiService {
       'wasteReduction': 90,
       'ingredients': [...proteins, ...carbs].map((i) => i.name).toList(),
       'instructions': [
-        '1. Prepare ${carb} according to package instructions',
-        '2. Season ${protein} with salt and pepper',
-        '3. Cook ${protein} in a pan until done',
-        '4. Serve ${protein} over or alongside ${carb}',
+        '1. Prepare $carb according to package instructions',
+        '2. Season $protein with salt and pepper',
+        '3. Cook $protein in a pan until done',
+        '4. Serve $protein over or alongside $carb',
         '5. Add your favorite seasonings and enjoy'
       ],
       'nutritionalValue': 'Balanced protein and carbohydrate meal',
@@ -621,10 +622,10 @@ class RecipeApiService {
       'wasteReduction': 85,
       'ingredients': [...vegetables, ...carbs].map((i) => i.name).toList(),
       'instructions': [
-        '1. Cook ${carb} according to package instructions',
-        '2. Sauté ${vegetable} in oil until tender',
+        '1. Cook $carb according to package instructions',
+        '2. Sauté $vegetable in oil until tender',
         '3. Season with salt, pepper, and herbs',
-        '4. Combine ${vegetable} with ${carb}',
+        '4. Combine $vegetable with $carb',
         '5. Serve warm and enjoy'
       ],
       'nutritionalValue': 'Nutritious vegetarian meal',
@@ -648,11 +649,11 @@ class RecipeApiService {
       'wasteReduction': 95,
       'ingredients': [...proteins, ...flatbreads].map((i) => i.name).toList(),
       'instructions': [
-        '1. Season ${protein} with salt and pepper',
-        '2. Cook ${protein} in a pan until done',
-        '3. Warm ${flatbread} on a pan or microwave',
-        '4. Slice ${protein} into strips',
-        '5. Place ${protein} on ${flatbread}',
+        '1. Season $protein with salt and pepper',
+        '2. Cook $protein in a pan until done',
+        '3. Warm $flatbread on a pan or microwave',
+        '4. Slice $protein into strips',
+        '5. Place $protein on $flatbread',
         '6. Roll up tightly and serve hot'
       ],
       'nutritionalValue': 'High protein roll',
@@ -676,10 +677,10 @@ class RecipeApiService {
       'wasteReduction': 90,
       'ingredients': [...vegetables, ...flatbreads].map((i) => i.name).toList(),
       'instructions': [
-        '1. Slice ${vegetable} into thin strips',
-        '2. Warm ${flatbread} on a pan',
-        '3. Sauté ${vegetable} with oil and spices',
-        '4. Place ${vegetable} on ${flatbread}',
+        '1. Slice $vegetable into thin strips',
+        '2. Warm $flatbread on a pan',
+        '3. Sauté $vegetable with oil and spices',
+        '4. Place $vegetable on $flatbread',
         '5. Roll up and serve fresh'
       ],
       'nutritionalValue': 'Fresh vegetable wrap',

@@ -1,5 +1,6 @@
 /// AUTO-GENERATED FILE. DO NOT EDIT.
 /// Generated from vocab.txt
+library;
 
 const List<String> recipeVocab = [
   'active',

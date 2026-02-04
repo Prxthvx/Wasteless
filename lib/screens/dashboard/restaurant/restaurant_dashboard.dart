@@ -53,7 +53,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     void dispose() {
       _viewModel.removeListener(_onViewModelChanged);
       _tabController.dispose();
-      
       super.dispose();
     }
 
@@ -63,10 +62,16 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
           restaurantId: widget.profile.id,
           isDemo: widget.profile.id == 'demo-user-id',
         );
-      } catch (e) {
+      } catch (e, stackTrace) {
+        debugPrint('Error loading data: $e');
+        debugPrint('Stack trace: $stackTrace');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e')),
+          SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
@@ -421,8 +426,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
       );
       
       final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
-      if (daysUntilExpiry <= 1) urgency += 100;
-      else if (daysUntilExpiry <= 2) urgency += 80;
+      if (daysUntilExpiry <= 1) {
+        urgency += 100;
+      } else if (daysUntilExpiry <= 2) urgency += 80;
       else if (daysUntilExpiry <= 3) urgency += 60;
     }
     return urgency;

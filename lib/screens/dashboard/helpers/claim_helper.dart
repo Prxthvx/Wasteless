@@ -42,7 +42,7 @@ class ClaimHelper {
             onPressed: () async {
               final repo = DonationRepository();
               try {
-                final claimResult = await repo.claimDonation(
+                await repo.claimDonation(
                   donationId: donation.id,
                   ngoId: profile.id,
                   claimMessage: 'Interested in claiming this donation.',

@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../../services/supabase_service.dart';
 import '../../models/donation.dart';
 
@@ -14,18 +15,21 @@ class DonationRepository {
           .select('*, profiles!donations_restaurant_id_fkey(*)')
           .eq('status', 'available')
           .order('created_at', ascending: false);
-      print('[DonationRepository] Fetched donations: $data');
+      debugPrint('[DonationRepository] Fetched ${(data as List).length} donations');
       return (data as List).map((e) {
         try {
           return Donation.fromJson(Map<String, dynamic>.from(e));
-        } catch (err) {
-          print('[DonationRepository] Error parsing donation: $e\nError: $err');
+        } catch (err, stackTrace) {
+          debugPrint('[DonationRepository] Error parsing donation: $e');
+          debugPrint('Error: $err');
+          debugPrint('Stack trace: $stackTrace');
           return null;
         }
       }).whereType<Donation>().toList();
-    } catch (e) {
-      print('[DonationRepository] Error fetching donations: $e');
-      return [];
+    } catch (e, stackTrace) {
+      debugPrint('[DonationRepository] Error fetching donations: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow; // Rethrow to let caller handle
     }
   }
 

@@ -34,7 +34,7 @@ class NGODashboardViewModel {
       claimedDonations = await _donationRepo.listMyClaimedDonations(userId);
     }
 
-    analytics = await AnalyticsHelper.calculateAnalytics(claimedDonations);
+    analytics = AnalyticsHelper.calculateAnalytics(claimedDonations);
     isLoading = false;
   }
 
@@ -98,7 +98,7 @@ class NGODashboardViewModel {
       if (alreadyClaimed) 
        {
         throw Exception('Donation already claimed');
-       };
+       }
     // Remove from available list
     availableDonations.removeWhere((d) => d.id == donation.id);
 

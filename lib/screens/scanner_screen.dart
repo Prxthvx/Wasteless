@@ -14,6 +14,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool _scanned = false; // ✅ prevent multiple triggers
 
   @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(

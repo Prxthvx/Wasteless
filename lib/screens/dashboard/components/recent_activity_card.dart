@@ -79,11 +79,11 @@ class RecentActivityCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                claim.title ?? 'No Title',
+                                claim.title,
                                 style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               Text(
-                                '${claim.quantity ?? ''} • ${claim.status ?? ''}',
+                                '${claim.quantity} • ${claim.status}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -96,7 +96,7 @@ class RecentActivityCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                )).toList(),
+                )),
               ],
               if (recentAvailable.isNotEmpty) ...[
                 if (recentClaims.isNotEmpty) const SizedBox(height: 16),
@@ -130,7 +130,7 @@ class RecentActivityCard extends StatelessWidget {
                                 style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               Text(
-                                '${donation.quantity ?? ''} • ${donation.status ?? ''}',
+                                '${donation.quantity} • ${donation.status}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -143,7 +143,7 @@ class RecentActivityCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                )).toList(),
+                )),
               ],
             ],
           ],

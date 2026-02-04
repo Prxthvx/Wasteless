@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 
 class DebugScreen extends StatefulWidget {
@@ -11,7 +10,7 @@ class DebugScreen extends StatefulWidget {
 
 class _DebugScreenState extends State<DebugScreen> {
   String _status = 'Checking...';
-  List<String> _logs = [];
+  final List<String> _logs = [];
 
   @override
   void initState() {
@@ -31,7 +30,7 @@ class _DebugScreenState extends State<DebugScreen> {
       // Check if profiles table exists
       _addLog('Checking profiles table...');
       try {
-        final response = await SupabaseService.client
+        await SupabaseService.client
             .from('profiles')
             .select('count')
             .limit(1);
@@ -47,7 +46,7 @@ class _DebugScreenState extends State<DebugScreen> {
       // Check if inventory_items table exists
       _addLog('Checking inventory_items table...');
       try {
-        final response = await SupabaseService.client
+        await SupabaseService.client
             .from('inventory_items')
             .select('count')
             .limit(1);
@@ -59,7 +58,7 @@ class _DebugScreenState extends State<DebugScreen> {
       // Check if donations table exists
       _addLog('Checking donations table...');
       try {
-        final response = await SupabaseService.client
+        await SupabaseService.client
             .from('donations')
             .select('count')
             .limit(1);
@@ -71,7 +70,7 @@ class _DebugScreenState extends State<DebugScreen> {
       // Check if donation_claims table exists
       _addLog('Checking donation_claims table...');
       try {
-        final response = await SupabaseService.client
+        await SupabaseService.client
             .from('donation_claims')
             .select('count')
             .limit(1);
