@@ -16,12 +16,12 @@ class ClickableStatCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 6),
               Text(
                 value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -31,13 +31,13 @@ class ClickableStatCard extends StatelessWidget {
               ),
               Text(
                 title,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                style: TextStyle(color: Colors.grey[600], fontSize: 11),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Icon(
                 Icons.arrow_forward_ios,
-                size: 12,
+                size: 10,
                 color: color.withOpacity(0.7),
               ),
             ],

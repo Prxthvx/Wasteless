@@ -46,12 +46,16 @@ class MultiIngredientRecipeGenerator extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Multi-Ingredient Recipe Generator',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                Expanded(
+                  child: const Text(
+                    'Multi-Ingredient Recipe Generator',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

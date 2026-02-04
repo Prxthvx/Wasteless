@@ -147,7 +147,7 @@ class InventoryRecipeGenerator extends StatelessWidget {
                       return GestureDetector(
                         onTap: () => onSelectIngredients(item),
                         child: Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: isExpiring ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
@@ -165,12 +165,12 @@ class InventoryRecipeGenerator extends StatelessWidget {
                                     Icon(
                                       _getCategoryIcon(item.category),
                                       color: isExpiring ? Colors.orange : Colors.grey[600],
-                                      size: 12,
+                                      size: 11,
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 3),
                                     if (isExpiring)
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                         decoration: BoxDecoration(
                                           color: Colors.orange,
                                           borderRadius: BorderRadius.circular(4),
@@ -186,12 +186,12 @@ class InventoryRecipeGenerator extends StatelessWidget {
                                       ),
                                   ],
                                 ),
-
+                              const SizedBox(height: 1),
                               Text(
                                 item.name,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 10,
+                                  fontSize: 9,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -200,23 +200,26 @@ class InventoryRecipeGenerator extends StatelessWidget {
                                 '${item.quantity} • ${item.category}',
                                 style: TextStyle(
                                   color: Colors.grey[600],
-                                  fontSize: 8,
+                                  fontSize: 7,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
+                              const SizedBox(height: 1),
                               Row(
                                 children: [
                                   Icon(
                                     Icons.restaurant_menu,
                                     color: Colors.purple,
-                                    size: 12,
+                                    size: 10,
                                   ),
-                                  const SizedBox(width: 3),
+                                  const SizedBox(width: 2),
                                   Expanded(
                                     child: Text(
                                     'Get Recipe',
                                     style: TextStyle(
                                       color: Colors.purple,
-                                      fontSize: 10,
+                                      fontSize: 8,
                                       fontWeight: FontWeight.w500,
                                     ),
                                     overflow: TextOverflow.ellipsis,

@@ -105,10 +105,11 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               const Icon(Icons.recycling, size: 80, color: Colors.green),
               const SizedBox(height: 32),
               const Text(
@@ -198,6 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),

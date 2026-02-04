@@ -35,20 +35,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
           ),
         ],
       ),
-      body: MobileScanner(
-        controller: cameraController,
-        onDetect: (capture) {
-          if (_scanned) return;
-          
-          for (final barcode in capture.barcodes) {
-            final String? code = barcode.rawValue;
-            if (code != null) {
-              _scanned = true;
-              Navigator.pop(context, code); // ✅ close scanner
-              break;
+      body: RepaintBoundary(
+        child: MobileScanner(
+          controller: cameraController,
+          onDetect: (capture) {
+            if (_scanned) return;
+            
+            for (final barcode in capture.barcodes) {
+              final String? code = barcode.rawValue;
+              if (code != null) {
+                _scanned = true;
+                Navigator.pop(context, code); // ✅ close scanner
+                break;
+              }
             }
-          }
-        },
+          },
+        ),
       ),
     );
   }

@@ -18,9 +18,10 @@ class WelcomeScreen extends StatelessWidget {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                 const SizedBox(height: 32),
                 // Custom Logo
                 Container(
@@ -168,6 +169,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
               ],
+            ),
             ),
           ),
         ),
