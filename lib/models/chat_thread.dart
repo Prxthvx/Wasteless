@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'user_profile.dart';
 
 class ChatThread {
@@ -24,6 +25,10 @@ class ChatThread {
   });
 
   factory ChatThread.fromJson(Map<String, dynamic> json) {
+    debugPrint('[ChatThread] fromJson called with: ${json.keys}');
+    debugPrint('[ChatThread] restaurant field: ${json['restaurant']}');
+    debugPrint('[ChatThread] ngo field: ${json['ngo']}');
+
     // Parse restaurant profile if available
     UserProfile? restaurantProfile;
     if (json['restaurant'] != null) {
@@ -31,9 +36,15 @@ class ChatThread {
         restaurantProfile = UserProfile.fromJson(
           Map<String, dynamic>.from(json['restaurant']),
         );
-      } catch (e) {
-        print('[ChatThread] Error parsing restaurant profile: $e');
+        debugPrint(
+          '[ChatThread] Successfully parsed restaurant profile: ${restaurantProfile.name}',
+        );
+      } catch (e, stackTrace) {
+        debugPrint('[ChatThread] Error parsing restaurant profile: $e');
+        debugPrint('[ChatThread] Stack trace: $stackTrace');
       }
+    } else {
+      debugPrint('[ChatThread] No restaurant field in JSON');
     }
 
     // Parse NGO profile if available
@@ -43,9 +54,15 @@ class ChatThread {
         ngoProfile = UserProfile.fromJson(
           Map<String, dynamic>.from(json['ngo']),
         );
-      } catch (e) {
-        print('[ChatThread] Error parsing NGO profile: $e');
+        debugPrint(
+          '[ChatThread] Successfully parsed NGO profile: ${ngoProfile.name}',
+        );
+      } catch (e, stackTrace) {
+        debugPrint('[ChatThread] Error parsing NGO profile: $e');
+        debugPrint('[ChatThread] Stack trace: $stackTrace');
       }
+    } else {
+      debugPrint('[ChatThread] No ngo field in JSON');
     }
 
     return ChatThread(

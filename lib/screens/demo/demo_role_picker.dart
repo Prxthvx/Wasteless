@@ -36,7 +36,9 @@ class _DemoRolePickerScreenState extends State<DemoRolePickerScreen> {
     );
     if (_role == 'restaurant') {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => RestaurantDashboard(profile: profile)),
+        MaterialPageRoute(
+          builder: (_) => RestaurantDashboard(profile: profile),
+        ),
       );
     } else {
       Navigator.of(context).pushReplacement(
@@ -53,84 +55,92 @@ class _DemoRolePickerScreenState extends State<DemoRolePickerScreen> {
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 8),
-              const Text(
-                'Explore WasteLess without signing up',
-                style: TextStyle(fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                const Text(
+                  'Explore WasteLess without signing up',
+                  style: TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _role,
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Required' : null,
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'restaurant', child: Text('Restaurant')),
-                  DropdownMenuItem(value: 'ngo', child: Text('NGO')),
-                ],
-                onChanged: (v) => setState(() => _role = v ?? 'restaurant'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _locationCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: _enterDemo,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('Enter Demo'),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  await NotificationService.showDemoNotification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Demo notification sent! Check your device notifications.'),
-                      backgroundColor: Colors.green,
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _role,
+                  decoration: const InputDecoration(
+                    labelText: 'Role',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'restaurant',
+                      child: Text('Restaurant'),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.notifications),
-                label: const Text('Test Notifications'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.green,
-                  side: const BorderSide(color: Colors.green),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                    DropdownMenuItem(value: 'ngo', child: Text('NGO')),
+                  ],
+                  onChanged: (v) => setState(() => _role = v ?? 'restaurant'),
                 ),
-              )
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _locationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: _enterDemo,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Enter Demo'),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    await NotificationService.showDemoNotification();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Demo notification sent! Check your device notifications.',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.notifications),
+                  label: const Text('Test Notifications'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-

@@ -106,9 +106,10 @@ class _DebugScreenState extends State<DebugScreen> {
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
@@ -188,10 +189,11 @@ class _DebugScreenState extends State<DebugScreen> {
                   ],
                 ),
               ),
-            ),
-          ],
+            ),  
+          ]          
         ),
       ),
+      )
     );
   }
 }

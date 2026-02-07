@@ -7,8 +7,8 @@ import '../../models/chat_thread.dart';
 class MessageRepository {
   final SupabaseClient _client;
 
-  MessageRepository({SupabaseClient? client}) 
-      : _client = client ?? SupabaseService.client;
+  MessageRepository({SupabaseClient? client})
+    : _client = client ?? SupabaseService.client;
 
   /// Send a new message in a chat thread
   Future<Message> sendMessage({
@@ -19,9 +19,11 @@ class MessageRepository {
   }) async {
     try {
       debugPrint('[MessageRepository] Sending message in thread: $threadId');
-      debugPrint('[MessageRepository] Sender: $senderId, Receiver: $receiverId');
+      debugPrint(
+        '[MessageRepository] Sender: $senderId, Receiver: $receiverId',
+      );
       debugPrint('[MessageRepository] Content length: ${content.length} chars');
-      
+
       final payload = {
         'thread_id': threadId,
         'sender_id': senderId,
@@ -59,8 +61,10 @@ class MessageRepository {
     int offset = 0,
   }) async {
     try {
-      debugPrint('[MessageRepository] Fetching messages for thread: $threadId (limit: $limit, offset: $offset)');
-      
+      debugPrint(
+        '[MessageRepository] Fetching messages for thread: $threadId (limit: $limit, offset: $offset)',
+      );
+
       final data = await _client
           .from('messages')
           .select()
@@ -68,21 +72,28 @@ class MessageRepository {
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
-      debugPrint('[MessageRepository] Fetched ${(data as List).length} messages');
+      debugPrint(
+        '[MessageRepository] Fetched ${(data as List).length} messages',
+      );
       debugPrint('[MessageRepository] Raw data: $data');
 
-      final messages = (data as List).map((e) {
-        try {
-          return Message.fromJson(Map<String, dynamic>.from(e));
-        } catch (err, stackTrace) {
-          debugPrint('[MessageRepository] Error parsing message: $e');
-          debugPrint('Error: $err');
-          debugPrint('Stack trace: $stackTrace');
-          return null;
-        }
-      }).whereType<Message>().toList();
+      final messages = (data as List)
+          .map((e) {
+            try {
+              return Message.fromJson(Map<String, dynamic>.from(e));
+            } catch (err, stackTrace) {
+              debugPrint('[MessageRepository] Error parsing message: $e');
+              debugPrint('Error: $err');
+              debugPrint('Stack trace: $stackTrace');
+              return null;
+            }
+          })
+          .whereType<Message>()
+          .toList();
 
-      debugPrint('[MessageRepository] Successfully parsed ${messages.length} messages');
+      debugPrint(
+        '[MessageRepository] Successfully parsed ${messages.length} messages',
+      );
       return messages;
     } catch (e, stackTrace) {
       debugPrint('[MessageRepository] Error fetching message history: $e');
@@ -97,7 +108,9 @@ class MessageRepository {
     required void Function(Message message) onMessageReceived,
     void Function(String error)? onError,
   }) {
-    debugPrint('[MessageRepository] Subscribing to messages in thread: $threadId');
+    debugPrint(
+      '[MessageRepository] Subscribing to messages in thread: $threadId',
+    );
 
     final channel = _client
         .channel('messages:thread_id=eq.$threadId')
@@ -116,7 +129,9 @@ class MessageRepository {
               final message = Message.fromJson(payload.newRecord);
               onMessageReceived(message);
             } catch (e, stackTrace) {
-              debugPrint('[MessageRepository] Error parsing real-time message: $e');
+              debugPrint(
+                '[MessageRepository] Error parsing real-time message: $e',
+              );
               debugPrint('Stack trace: $stackTrace');
               if (onError != null) {
                 onError(e.toString());
@@ -181,9 +196,7 @@ class MessageRepository {
   }
 
   /// Fetch all chat threads for a user
-  Future<List<ChatThread>> fetchChatThreads({
-    required String userId,
-  }) async {
+  Future<List<ChatThread>> fetchChatThreads({required String userId}) async {
     try {
       debugPrint('[MessageRepository] Fetching chat threads for user: $userId');
 
@@ -191,24 +204,30 @@ class MessageRepository {
           .from('chat_threads')
           .select('''
             *,
-            restaurant:profiles!chat_threads_restaurant_id_fkey(id, name, org_name, role),
-            ngo:profiles!chat_threads_ngo_id_fkey(id, name, org_name, role)
+            restaurant:profiles!chat_threads_restaurant_id_fkey(*),
+            ngo:profiles!chat_threads_ngo_id_fkey(*)
           ''')
           .or('restaurant_id.eq.$userId,ngo_id.eq.$userId')
           .order('last_message_at', ascending: false);
 
-      debugPrint('[MessageRepository] Fetched ${(data as List).length} chat threads');
+      debugPrint(
+        '[MessageRepository] Fetched ${(data as List).length} chat threads',
+      );
 
-      return (data as List).map((e) {
-        try {
-          return ChatThread.fromJson(Map<String, dynamic>.from(e));
-        } catch (err, stackTrace) {
-          debugPrint('[MessageRepository] Error parsing chat thread: $e');
-          debugPrint('Error: $err');
-          debugPrint('Stack trace: $stackTrace');
-          return null;
-        }
-      }).whereType<ChatThread>().toList();
+      return (data as List)
+          .map((e) {
+            try {
+              debugPrint('[MessageRepository] Raw thread data: $e');
+              return ChatThread.fromJson(Map<String, dynamic>.from(e));
+            } catch (err, stackTrace) {
+              debugPrint('[MessageRepository] Error parsing chat thread: $e');
+              debugPrint('Error: $err');
+              debugPrint('Stack trace: $stackTrace');
+              return null;
+            }
+          })
+          .whereType<ChatThread>()
+          .toList();
     } catch (e, stackTrace) {
       debugPrint('[MessageRepository] Error fetching chat threads: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -217,9 +236,7 @@ class MessageRepository {
   }
 
   /// Get a specific thread by ID
-  Future<ChatThread?> getThreadById({
-    required String threadId,
-  }) async {
+  Future<ChatThread?> getThreadById({required String threadId}) async {
     try {
       debugPrint('[MessageRepository] Fetching thread by ID: $threadId');
 
@@ -227,8 +244,8 @@ class MessageRepository {
           .from('chat_threads')
           .select('''
             *,
-            restaurant:profiles!chat_threads_restaurant_id_fkey(id, name, org_name, role),
-            ngo:profiles!chat_threads_ngo_id_fkey(id, name, org_name, role)
+            restaurant:profiles!chat_threads_restaurant_id_fkey(*),
+            ngo:profiles!chat_threads_ngo_id_fkey(*)
           ''')
           .eq('id', threadId)
           .maybeSingle();
@@ -254,7 +271,9 @@ class MessageRepository {
     String? donationId,
   }) async {
     try {
-      debugPrint('[MessageRepository] Getting chat thread: restaurant=$restaurantId, ngo=$ngoId, donation=$donationId');
+      debugPrint(
+        '[MessageRepository] Getting chat thread: restaurant=$restaurantId, ngo=$ngoId, donation=$donationId',
+      );
 
       if (restaurantId.isEmpty || ngoId.isEmpty) {
         throw Exception('Restaurant ID and NGO ID cannot be empty');
@@ -262,8 +281,10 @@ class MessageRepository {
 
       // Try to find ANY existing thread between these two users
       // (regardless of donation_id - we want one chat per restaurant-NGO pair)
-      debugPrint('[MessageRepository] Searching for existing thread between restaurant and NGO...');
-      
+      debugPrint(
+        '[MessageRepository] Searching for existing thread between restaurant and NGO...',
+      );
+
       final existingThreads = await _client
           .from('chat_threads')
           .select()
@@ -276,12 +297,16 @@ class MessageRepository {
         final data = existingThreads.first;
         debugPrint('[MessageRepository] Found existing chat thread: $data');
         final thread = ChatThread.fromJson(Map<String, dynamic>.from(data));
-        debugPrint('[MessageRepository] Reusing existing thread, ID: ${thread.id}');
+        debugPrint(
+          '[MessageRepository] Reusing existing thread, ID: ${thread.id}',
+        );
         return thread;
       }
 
       // Create new thread if not found
-      debugPrint('[MessageRepository] No existing thread found, creating new one');
+      debugPrint(
+        '[MessageRepository] No existing thread found, creating new one',
+      );
       final payload = {
         'restaurant_id': restaurantId,
         'ngo_id': ngoId,
@@ -296,21 +321,23 @@ class MessageRepository {
           .select()
           .single();
 
-      debugPrint('[MessageRepository] Chat thread created successfully: $newData');
+      debugPrint(
+        '[MessageRepository] Chat thread created successfully: $newData',
+      );
       final newThread = ChatThread.fromJson(Map<String, dynamic>.from(newData));
       debugPrint('[MessageRepository] New thread created, ID: ${newThread.id}');
       return newThread;
     } catch (e, stackTrace) {
-      debugPrint('[MessageRepository] ❌ Error getting/creating chat thread: $e');
+      debugPrint(
+        '[MessageRepository] ❌ Error getting/creating chat thread: $e',
+      );
       debugPrint('[MessageRepository] Stack trace: $stackTrace');
       rethrow;
     }
   }
 
   /// Get unread message count for a user
-  Future<int> getUnreadCount({
-    required String userId,
-  }) async {
+  Future<int> getUnreadCount({required String userId}) async {
     try {
       debugPrint('[MessageRepository] Getting unread count for user: $userId');
 
@@ -337,7 +364,9 @@ class MessageRepository {
     required String userId,
   }) async {
     try {
-      debugPrint('[MessageRepository] Getting unread count for thread: $threadId');
+      debugPrint(
+        '[MessageRepository] Getting unread count for thread: $threadId',
+      );
 
       final data = await _client
           .from('messages')

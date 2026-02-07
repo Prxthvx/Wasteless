@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
@@ -17,6 +18,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   User? _user;
   UserProfile? _profile;
   bool _isLoading = true;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
@@ -26,13 +28,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   void _listenToAuthChanges() {
-    SupabaseService.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = SupabaseService.client.auth.onAuthStateChange.listen((
+      data,
+    ) {
       final AuthChangeEvent event = data.event;
       final User? user = data.session?.user;
 
       if (event == AuthChangeEvent.signedIn && user != null) {
         _fetchUserProfile(user.id);
       } else if (event == AuthChangeEvent.signedOut) {
+        if (!mounted) return;
         setState(() {
           _user = null;
           _profile = null;
@@ -42,6 +47,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _checkAuthState() async {
     try {
       final session = SupabaseService.client.auth.currentSession;
@@ -49,11 +60,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _user = session!.user;
         await _fetchUserProfile(_user!.id);
       } else {
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -68,6 +81,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           .eq('id', userId)
           .single();
 
+      if (!mounted) return;
       final profile = UserProfile.fromJson(response);
       setState(() {
         _profile = profile;
@@ -78,15 +92,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
       try {
         final user = SupabaseService.client.auth.currentUser;
         if (user != null) {
-          await SupabaseService.client
-              .from('profiles')
-              .insert({
-                'id': user.id,
-                'name': user.email?.split('@')[0] ?? 'User',
-                'role': 'restaurant', // Default to restaurant
-                'location': 'Unknown',
-                'email': user.email ?? '',
-              });
+          await SupabaseService.client.from('profiles').insert({
+            'id': user.id,
+            'name': user.email?.split('@')[0] ?? 'User',
+            'role': 'restaurant', // Default to restaurant
+            'location': 'Unknown',
+            'email': user.email ?? '',
+          });
 
           // Fetch the newly created profile
           final newResponse = await SupabaseService.client
@@ -95,18 +107,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
               .eq('id', userId)
               .single();
 
+          if (!mounted) return;
           final newProfile = UserProfile.fromJson(newResponse);
           setState(() {
             _profile = newProfile;
             _isLoading = false;
           });
         } else {
+          if (!mounted) return;
           setState(() {
             _isLoading = false;
           });
         }
       } catch (profileError) {
         // If profile creation fails, still show welcome screen
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
@@ -128,10 +143,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               SizedBox(height: 16),
               Text(
                 'Loading...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ],
           ),

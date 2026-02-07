@@ -52,7 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onScroll() {
     // Load more messages when scrolled to top
-    if (_scrollController.position.pixels <= 100 && 
+    if (_scrollController.position.pixels <= 100 &&
         widget.viewModel.hasMoreMessages &&
         !widget.viewModel.isLoadingMore) {
       widget.viewModel.loadMoreMessages(userId: widget.currentUserId);
@@ -61,11 +61,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage() {
     final content = _messageController.text.trim();
-    
+
     debugPrint('[ChatScreen] _sendMessage called');
     debugPrint('[ChatScreen] Content: "$content"');
     debugPrint('[ChatScreen] Content isEmpty: ${content.isEmpty}');
-    
+
     if (content.isEmpty) {
       debugPrint('[ChatScreen] Content is empty, returning');
       return;
@@ -73,7 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final thread = widget.viewModel.currentThread;
     debugPrint('[ChatScreen] Current thread: ${thread?.id ?? "NULL"}');
-    
+
     if (thread == null) {
       debugPrint('[ChatScreen] Thread is null, returning');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,7 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       _messageController.clear();
-      
+
       // Scroll to bottom
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
@@ -129,8 +129,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     // Debug current state
-    debugPrint('[ChatScreen] Building - Messages: ${widget.viewModel.messages.length}, Error: ${widget.viewModel.errorMessage}');
-    
+    debugPrint(
+      '[ChatScreen] Building - Messages: ${widget.viewModel.messages.length}, Error: ${widget.viewModel.errorMessage}',
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -140,7 +142,10 @@ class _ChatScreenState extends State<ChatScreen> {
             if (widget.otherUserRole != null)
               Text(
                 widget.otherUserRole == 'restaurant' ? 'Restaurant' : 'NGO',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
           ],
         ),
@@ -175,10 +180,12 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
 
           // Message input
-          _MessageInput(
-            controller: _messageController,
-            isSending: widget.viewModel.isSendingMessage,
-            onSend: _sendMessage,
+          SafeArea(
+            child: _MessageInput(
+              controller: _messageController,
+              isSending: widget.viewModel.isSendingMessage,
+              onSend: _sendMessage,
+            ),
           ),
         ],
       ),
@@ -190,10 +197,7 @@ class _ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback onDismiss;
 
-  const _ErrorBanner({
-    required this.message,
-    required this.onDismiss,
-  });
+  const _ErrorBanner({required this.message, required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
@@ -206,10 +210,7 @@ class _ErrorBanner extends StatelessWidget {
           const Icon(Icons.error, color: Colors.red),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.red),
-            ),
+            child: Text(message, style: const TextStyle(color: Colors.red)),
           ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.red),
@@ -279,13 +280,15 @@ class _MessagesList extends StatelessWidget {
         final isMe = message.senderId == currentUserId;
 
         // Show date separator
-        final showDateSeparator = _shouldShowDateSeparator(messages, messageIndex);
+        final showDateSeparator = _shouldShowDateSeparator(
+          messages,
+          messageIndex,
+        );
 
         return Column(
           children: [
-            if (showDateSeparator)
-              _DateSeparator(date: message.createdAt),
-            
+            if (showDateSeparator) _DateSeparator(date: message.createdAt),
+
             MessageBubble(
               message: message,
               isMe: isMe,
