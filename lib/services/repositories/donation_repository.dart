@@ -36,7 +36,7 @@ class DonationRepository {
   Future<List<Donation>> listMyRestaurantDonations(String restaurantId) async {
     final data = await _client
         .from('donations')
-        .select()
+        .select('*, profiles!donations_restaurant_id_fkey(*)')
         .eq('restaurant_id', restaurantId)
         .order('created_at', ascending: false);
     return (data as List).map((e) => Donation.fromJson(Map<String, dynamic>.from(e))).toList();
@@ -129,7 +129,7 @@ class DonationRepository {
       final data = await _client
           .from('donations')
           .insert(payload)
-          .select()
+          .select('*, profiles!donations_restaurant_id_fkey(*)')
           .single();
       print('[DonationRepository] Donation created: $data');
       try {

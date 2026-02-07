@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../models/donation.dart';
 import '../../../models/user_profile.dart';
 import '../../../services/repositories/donation_repository.dart';
+import '../../../services/chat_navigation_helper.dart';
 
 class ClaimHelper {
   static Future<void> showClaimDialog({
@@ -34,6 +35,19 @@ class ClaimHelper {
           ],
         ),
         actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.chat),
+            label: const Text('Contact'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              ChatNavigationHelper.navigateToChatFromDonation(
+                context: parentContext,
+                donation: donation,
+                currentUserId: profile.id,
+                currentUserRole: 'ngo',
+              );
+            },
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),

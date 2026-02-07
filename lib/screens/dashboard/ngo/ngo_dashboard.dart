@@ -3,6 +3,7 @@ import '../../../models/user_profile.dart';
 import '../../../models/donation.dart';
 import '../../../services/repositories/donation_repository.dart';
 import '../../../services/supabase_service.dart';
+import '../../../services/chat_navigation_helper.dart';
 import '../dialogs/notifications_dialog.dart';
 import '../dialogs/settings_dialog.dart';
 import '../helpers/claim_helper.dart';
@@ -13,6 +14,7 @@ import 'tabs/ngo_my_claims_tab.dart';
 import 'tabs/ngo_impact_tab.dart';
 import 'tabs/ngo_overview_tab.dart';
 import 'widgets/ngo_dashboard_drawer.dart';
+import '../../chat/widgets/unread_badge.dart';
 
 class NGODashboard extends StatefulWidget {
   final UserProfile profile;
@@ -73,6 +75,17 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
           onPressed: () => _showDrawer(),
         ),
         actions: [
+          IconButtonWithBadge(
+            icon: Icons.chat,
+            badgeCount: 0, // TODO: Connect to ChatService for real count
+            iconColor: Colors.white,
+            onPressed: () {
+              ChatNavigationHelper.navigateToChatList(
+                context: context,
+                currentUserId: widget.profile.id,
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () => _showNotifications(),
@@ -186,18 +199,11 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   void _showContactRestaurant(Donation donation) {
-    showDialog(
+    ChatNavigationHelper.navigateToChatFromDonation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Contact Restaurant'),
-        content: const Text('Contact information and messaging would be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+      donation: donation,
+      currentUserId: widget.profile.id,
+      currentUserRole: 'ngo',
     );
   }
 

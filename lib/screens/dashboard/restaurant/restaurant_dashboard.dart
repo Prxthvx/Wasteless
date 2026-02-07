@@ -3,6 +3,7 @@ import '../../../models/user_profile.dart';
 import '../../../models/inventory_item.dart';
 import '../../../services/supabase_service.dart';
 import '../../../services/recipe_api_service.dart';
+import '../../../services/chat_navigation_helper.dart';
 import 'view_model/restaurant_dashboard_view_model.dart';
 import 'tabs/overview/restaurant_overview_tab.dart';
 import 'tabs/inventory/restaurant_inventory_tab.dart';
@@ -18,6 +19,7 @@ import 'dialogs/notifications_dialog.dart';
 import 'dialogs/settings_dialog.dart';
 import 'dialogs/edit_inventory_dialog.dart';
 import 'dialogs/post_donation_dialog.dart';
+import '../../chat/widgets/unread_badge.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   final UserProfile profile;
@@ -93,6 +95,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
                   )   ,
                 ),
         actions: [
+          IconButtonWithBadge(
+            icon: Icons.chat,
+            badgeCount: 0, // TODO: Connect to ChatService for real count
+            iconColor: Colors.white,
+            onPressed: () {
+              ChatNavigationHelper.navigateToChatList(
+                context: context,
+                currentUserId: widget.profile.id,
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () => _showNotifications(),
@@ -132,6 +145,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
           RestaurantDonationsTab(
             viewModel: _viewModel,
             onRefresh: _loadData,
+            currentUserId: widget.profile.id,
           ),
           RestaurantRecipesTab(
               viewModel: _viewModel,
@@ -269,7 +283,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               // Recalculate analytics after adding donation
               _viewModel.calculateAnalytics();
             }
+            // Close dialog only once
             Navigator.of(context).pop();
+            // Show success message
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Donation posted successfully!'),
@@ -277,6 +293,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               ),
             );
           } catch (e) {
+            // Close dialog on error too
+            Navigator.of(context).pop();
+            // Show error message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Error posting donation: $e'),

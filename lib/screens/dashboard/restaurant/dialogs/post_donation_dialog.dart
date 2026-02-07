@@ -86,6 +86,10 @@ class _PostDonationDialogState extends State<PostDonationDialog> {
         ),
       ),
       actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
@@ -100,10 +104,7 @@ class _PostDonationDialogState extends State<PostDonationDialog> {
                 postedAt: DateTime.now(),
               );
               await widget.onDonationPosted(donation);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Donation posted successfully!'), backgroundColor: Colors.green),
-              );
+              // Navigation and snackbar are handled in the callback
             }
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

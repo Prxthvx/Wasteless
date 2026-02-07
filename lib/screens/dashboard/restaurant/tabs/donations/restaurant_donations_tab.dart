@@ -8,11 +8,13 @@ import 'dialogs/donation_details_dialog.dart';
 class RestaurantDonationsTab extends StatelessWidget {
   final RestaurantDashboardViewModel viewModel;
   final Future<void> Function() onRefresh;
+  final String currentUserId;
 
   const RestaurantDonationsTab({
     super.key,
     required this.viewModel,
     required this.onRefresh,
+    required this.currentUserId,
   });
 
   @override
@@ -47,6 +49,7 @@ class RestaurantDonationsTab extends StatelessWidget {
       showDonationDetailsDialog(
         context: context,
         donation: donation,
+        currentUserId: currentUserId,
       );
       break;
   }

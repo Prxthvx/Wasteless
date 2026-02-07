@@ -87,7 +87,11 @@ class InventoryRepository {
       'expiry_date': expiryDate.toIso8601String().split('T')[0],
       'status': 'available',
     };
-    final data = await _client.from('donations').insert(payload).select().single();
+    final data = await _client
+        .from('donations')
+        .insert(payload)
+        .select('*, profiles!donations_restaurant_id_fkey(*)')
+        .single();
     return Donation.fromJson(Map<String, dynamic>.from(data));
   }
 }
