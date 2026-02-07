@@ -45,6 +45,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Location permission denied'),
@@ -55,6 +56,7 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       }
       if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Location permissions are permanently denied'),
@@ -66,6 +68,7 @@ class _SignupScreenState extends State<SignupScreen> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
+      if (!mounted) return;
       setState(() {
         _latitudeController.text = position.latitude.toString();
         _longitudeController.text = position.longitude.toString();
@@ -77,6 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error fetching location: $e'),
@@ -122,6 +126,7 @@ class _SignupScreenState extends State<SignupScreen> {
         'longitude': longitude,
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Signup successful!'),
@@ -130,6 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       Navigator.of(context).pushReplacementNamed('/login');
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Signup failed: $e'),
@@ -137,6 +143,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
     } finally {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }

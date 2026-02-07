@@ -37,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final rememberMe = prefs.getBool('remember_me') ?? false;
 
     if (savedEmail != null && rememberMe) {
+      if (!mounted) return;
       setState(() {
         _emailController.text = savedEmail;
         _rememberMe = rememberMe;
@@ -88,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));

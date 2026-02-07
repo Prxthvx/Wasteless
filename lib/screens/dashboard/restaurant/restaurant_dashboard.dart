@@ -23,62 +23,70 @@ import '../../chat/widgets/unread_badge.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   final UserProfile profile;
-  
+
   const RestaurantDashboard({super.key, required this.profile});
 
   @override
   State<RestaurantDashboard> createState() => _RestaurantDashboardState();
 }
 
-class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerProviderStateMixin {
+class _RestaurantDashboardState extends State<RestaurantDashboard>
+    with TickerProviderStateMixin {
   late TabController _tabController;
-  late final RestaurantDashboardViewModel _viewModel ;
-  
+  late final RestaurantDashboardViewModel _viewModel;
 
-    @override
-    void initState() {
-      super.initState();
-      _tabController = TabController(length: 5, vsync: this);
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_onTabChanged);
 
-      _viewModel = RestaurantDashboardViewModel();
-      _viewModel.addListener(_onViewModelChanged);
+    _viewModel = RestaurantDashboardViewModel();
+    _viewModel.addListener(_onViewModelChanged);
 
-      _loadData();
+    _loadData();
+  }
+
+  void _onTabChanged() {
+    if (mounted) {
+      setState(() {});
     }
+  }
 
-    void _onViewModelChanged() {
-      if (mounted) {
-        setState(() {});
-      }
+  void _onViewModelChanged() {
+    if (mounted) {
+      setState(() {});
     }
-    @override
-    void dispose() {
-      _viewModel.removeListener(_onViewModelChanged);
-      _tabController.dispose();
-      super.dispose();
-    }
+  }
 
-    Future<void> _loadData() async {
-      try {
-        await _viewModel.loadData(
-          restaurantId: widget.profile.id,
-          isDemo: widget.profile.id == 'demo-user-id',
-        );
-      } catch (e, stackTrace) {
-        debugPrint('Error loading data: $e');
-        debugPrint('Stack trace: $stackTrace');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading data: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    }
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelChanged);
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
 
- 
+  Future<void> _loadData() async {
+    try {
+      await _viewModel.loadData(
+        restaurantId: widget.profile.id,
+        isDemo: widget.profile.id == 'demo-user-id',
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Error loading data: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading data: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,13 +95,13 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-                    },
-                  )   ,
-                ),
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
         actions: [
           IconButtonWithBadge(
             icon: Icons.chat,
@@ -133,10 +141,10 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         controller: _tabController,
         children: [
           RestaurantOverviewTab(
-              viewModel: _viewModel,
-              restaurantName: widget.profile.name,
-              onNavigate: (index) => _tabController.animateTo(index),
-            ),
+            viewModel: _viewModel,
+            restaurantName: widget.profile.name,
+            onNavigate: (index) => _tabController.animateTo(index),
+          ),
           RestaurantInventoryTab(
             viewModel: _viewModel,
             onRefresh: _loadData,
@@ -148,9 +156,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
             currentUserId: widget.profile.id,
           ),
           RestaurantRecipesTab(
-              viewModel: _viewModel,
-             onGenerateRecipe: _showRecipeGenerationDialog,
-             onGenerateAdvancedRecipe: _showAdvancedRecipeDialog,
+            viewModel: _viewModel,
+            onGenerateRecipe: _showRecipeGenerationDialog,
+            onGenerateAdvancedRecipe: _showAdvancedRecipeDialog,
           ),
           RestaurantAnalyticsTab(viewModel: _viewModel),
         ],
@@ -165,11 +173,16 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         onSignOut: _signOut,
       ),
       floatingActionButton: _buildFloatingActionButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
   }
 
-   
-  Widget _buildFloatingActionButton() {
+  Widget? _buildFloatingActionButton() {
+    // Only show the add inventory button on the Inventory tab (index 1)
+    if (_tabController.index != 1) {
+      return null;
+    }
+
     return FloatingActionButton(
       onPressed: () => _onAddInventoryPressed(),
       backgroundColor: Colors.green,
@@ -179,13 +192,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
   }
 
   void _onAddInventoryPressed() {
-  showAddInventoryDialog(
-    context: context,
-    profile: widget.profile,
-    viewModel: _viewModel,
-  );
-}
-
+    showAddInventoryDialog(
+      context: context,
+      profile: widget.profile,
+      viewModel: _viewModel,
+    );
+  }
 
   void _handleInventoryAction(String action, InventoryItem item) {
     switch (action) {
@@ -210,24 +222,28 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         onItemUpdated: (updatedItem) async {
           try {
             if (widget.profile.id != 'demo-user-id') {
-                    final savedItem = await _viewModel.updateInventoryItem(
-                      itemId: item.id,
-                      name: updatedItem.name,
-                      quantity: updatedItem.quantity,
-                      category: updatedItem.category,
-                      expiryDate: updatedItem.expiryDate,
-                      status: updatedItem.status,
-                    );
+              final savedItem = await _viewModel.updateInventoryItem(
+                itemId: item.id,
+                name: updatedItem.name,
+                quantity: updatedItem.quantity,
+                category: updatedItem.category,
+                expiryDate: updatedItem.expiryDate,
+                status: updatedItem.status,
+              );
 
               setState(() {
-                final index = _viewModel.inventory.indexWhere((i) => i.id == item.id);
+                final index = _viewModel.inventory.indexWhere(
+                  (i) => i.id == item.id,
+                );
                 if (index != -1) {
                   _viewModel.inventory[index] = savedItem;
                 }
               });
             } else {
               setState(() {
-                final index = _viewModel.inventory.indexWhere((i) => i.id == item.id);
+                final index = _viewModel.inventory.indexWhere(
+                  (i) => i.id == item.id,
+                );
                 if (index != -1) {
                   _viewModel.inventory[index] = updatedItem;
                 }
@@ -325,10 +341,10 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
               try {
                 if (widget.profile.id != 'demo-user-id') {
                   await _viewModel.deleteInventoryItem(
-                        itemId: item.id,
-                        restaurantId: widget.profile.id,
-                        isDemo: widget.profile.id == 'demo-user-id',
-                        );
+                    itemId: item.id,
+                    restaurantId: widget.profile.id,
+                    isDemo: widget.profile.id == 'demo-user-id',
+                  );
                 }
                 setState(() {
                   _viewModel.inventory.removeWhere((i) => i.id == item.id);
@@ -357,8 +373,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
     );
   }
 
-
-
   void _showNotifications() {
     showDialog(
       context: context,
@@ -380,89 +394,97 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> with TickerPr
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error signing out: $e')));
     }
   }
 
- 
-
   void _showRecipeGenerationDialog(InventoryItem item) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => RecipeGenerationDialog(
-      item: item,
-      generateRecipe: _generateAIRecipe,
-      onShowAdvanced: _showAdvancedRecipeDialog,
-    ),
-  );
-}
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RecipeGenerationDialog(
+        item: item,
+        generateRecipe: _generateAIRecipe,
+        onShowAdvanced: _showAdvancedRecipeDialog,
+      ),
+    );
+  }
 
- void _showAdvancedRecipeDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AdvancedRecipeDialog(
-      inventory: _viewModel.inventory,
-      onRecipeSelected: _showDetailedAIRecipe,
-    ),
-  );
-}
-
+  void _showAdvancedRecipeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AdvancedRecipeDialog(
+        inventory: _viewModel.inventory,
+        onRecipeSelected: _showDetailedAIRecipe,
+      ),
+    );
+  }
 
   // Real API-based Recipe Generation
-  Future<List<Map<String, dynamic>>> _generateAIRecipe(InventoryItem primaryItem) async {
-    final availableItems = _viewModel.inventory.where((item) => item.id != primaryItem.id).toList();
-    // final expiringItems = availableItems.where((item) => 
+  Future<List<Map<String, dynamic>>> _generateAIRecipe(
+    InventoryItem primaryItem,
+  ) async {
+    final availableItems = _viewModel.inventory
+        .where((item) => item.id != primaryItem.id)
+        .toList();
+    // final expiringItems = availableItems.where((item) =>
     //   item.expiryDate.difference(DateTime.now()).inDays <= 3
     // ).toList();
-    
+
     // Use real recipe API
     final allIngredients = [primaryItem, ...availableItems];
-    final recipes = await RecipeApiService.getRecipesByIngredients(allIngredients);
-    
+    final recipes = await RecipeApiService.getRecipesByIngredients(
+      allIngredients,
+    );
+
     // Sort by waste reduction potential and expiry urgency
     recipes.sort((a, b) {
-      final aUrgency = _calculateUrgencyFromNames(a['ingredients'] as List<String>);
-      final bUrgency = _calculateUrgencyFromNames(b['ingredients'] as List<String>);
+      final aUrgency = _calculateUrgencyFromNames(
+        a['ingredients'] as List<String>,
+      );
+      final bUrgency = _calculateUrgencyFromNames(
+        b['ingredients'] as List<String>,
+      );
       return bUrgency.compareTo(aUrgency);
     });
-    
+
     return recipes.take(5).toList(); // Return top 5 recipes
   }
 
-  
   int _calculateUrgencyFromNames(List<String> ingredientNames) {
     int urgency = 0;
     for (final name in ingredientNames) {
       // Find matching inventory item
       final item = _viewModel.inventory.firstWhere(
-        (item) => item.name.toLowerCase().contains(name.toLowerCase()) || 
-                  name.toLowerCase().contains(item.name.toLowerCase()),
+        (item) =>
+            item.name.toLowerCase().contains(name.toLowerCase()) ||
+            name.toLowerCase().contains(item.name.toLowerCase()),
         orElse: () => _viewModel.inventory.first, // fallback
       );
-      
+
       final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
       if (daysUntilExpiry <= 1) {
         urgency += 100;
-      } else if (daysUntilExpiry <= 2) urgency += 80;
-      else if (daysUntilExpiry <= 3) urgency += 60;
+      } else if (daysUntilExpiry <= 2)
+        urgency += 80;
+      else if (daysUntilExpiry <= 3)
+        urgency += 60;
     }
     return urgency;
   }
 
-
- void _showDetailedAIRecipe(Map<String, dynamic> recipe) {
-  showDialog(
-    context: context,
-    builder: (context) => RecipeDetailDialog(
-      recipe: recipe,
-      onMarkUsed: _markIngredientsAsUsed,
-    ),
-  );
-}
+  void _showDetailedAIRecipe(Map<String, dynamic> recipe) {
+    showDialog(
+      context: context,
+      builder: (context) => RecipeDetailDialog(
+        recipe: recipe,
+        onMarkUsed: _markIngredientsAsUsed,
+      ),
+    );
+  }
 
   void _markIngredientsAsUsed(List<InventoryItem> ingredients) {
     // This would mark ingredients as used in a real implementation
