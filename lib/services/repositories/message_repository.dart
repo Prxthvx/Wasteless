@@ -293,7 +293,7 @@ class MessageRepository {
           .order('created_at', ascending: true) // Get oldest thread first
           .limit(1);
 
-      if (existingThreads != null && (existingThreads as List).isNotEmpty) {
+      if ((existingThreads as List).isNotEmpty) {
         final data = existingThreads.first;
         debugPrint('[MessageRepository] Found existing chat thread: $data');
         final thread = ChatThread.fromJson(Map<String, dynamic>.from(data));
