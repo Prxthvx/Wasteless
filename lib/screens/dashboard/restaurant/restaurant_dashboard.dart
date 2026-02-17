@@ -451,7 +451,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       return bUrgency.compareTo(aUrgency);
     });
 
-    return recipes.take(5).toList(); // Return top 5 recipes
+    return recipes.take(3).toList(); // Return top 3 recipes
   }
 
   int _calculateUrgencyFromNames(List<String> ingredientNames) {

@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/inventory_item.dart';
-import '../ml/recipe_predictor.dart';
+// ML model kept for future fallback implementation
+// import '../ml/recipe_predictor.dart';
 
 // Extension to capitalize first letter of string
 extension StringExtension on String {
@@ -18,69 +19,154 @@ class RecipeApiService {
   // Alternative free API
   static const String _freeBaseUrl = 'https://www.themealdb.com/api/json/v1/1';
   
-  // Get recipes based on ingredients
-  static Future<List<Map<String, dynamic>>> getRecipesByIngredients(List<InventoryItem> ingredients) async {
+  // HuggingFace Custom Recipe API
+  static const String _huggingFaceApiUrl = 'https://allentomy5-recipe-backend.hf.space/search';
+  
+  // Get recipes based on ingredients (using string list for custom input support)
+  static Future<List<Map<String, dynamic>>> getRecipesByIngredientsString(List<String> ingredientNames) async {
     try {
-      // ALWAYS use local generator first - it's working great!
-      // final localRecipes = _getSmartLocalRecipes(ingredients);
-      // if (localRecipes.isNotEmpty) {
-      //   print('Using local generator - found ${localRecipes.length} recipes');
-      //   return localRecipes;
-      // }
+      print('🔥 Calling HuggingFace Recipe API with ingredients: ${ingredientNames.join(", ")}');
       
-      final ingredientNames = ingredients.map((i) => i.name).toList();
-
-      final mlRecipeNames =
-          RecipePredictor.predictTopRecipes(ingredientNames);
-
-      if (mlRecipeNames.isNotEmpty) {
-        return mlRecipeNames.map((name) {
-          return {
-            'name': name,
-            'description': 'AI-generated recipe based on your inventory',
-            'time': '20 min',
-            'difficulty': 'Medium',
-            'type': 'main',
-            'wasteReduction': 95,
-            'ingredients': ingredientNames,
-            'instructions': [
-              '1. Prepare ingredients',
-              '2. Cook following standard technique',
-              '3. Adjust seasoning',
-              '4. Serve hot',
-            ],
-            'nutritionalValue': 'Balanced meal',
-            'serves': '2-3 people',
-            'source': 'Offline ML Model',
-          };
-        }).toList();
+      // 1️⃣ PRIMARY: HuggingFace Custom Recipe API
+      final hfRecipes = await _getRecipesFromHuggingFace(ingredientNames);
+      if (hfRecipes.isNotEmpty) {
+        print('✅ Got ${hfRecipes.length} recipes from HuggingFace API');
+        return hfRecipes.take(3).toList(); // Return top 3 recipes
       }
-
-      // 2️⃣ EXISTING LOCAL GENERATOR
-      final localRecipes = _getSmartLocalRecipes(ingredients);
-      if (localRecipes.isNotEmpty) return localRecipes;
-
-      // 3️⃣ APIs
-      final apiRecipes = await _getRecipesFromMealDB(ingredients);
-      if (apiRecipes.isNotEmpty) return apiRecipes;
-
-      // 4️⃣ Fallback
-      return _getFallbackRecipes(ingredients);
-
-      // // Only use APIs if local generator finds nothing (rare case)
-      // print('Local generator found no recipes, trying APIs...');
-      // final apiRecipes = await _getRecipesFromMealDB(ingredients);
-      // if (apiRecipes.isNotEmpty) return apiRecipes;
       
-      // // Final fallback
-      // return _getFallbackRecipes(ingredients);
+      print('⚠️ HuggingFace API returned no recipes, trying fallbacks...');
+      
+      // 2️⃣ FALLBACK: ML Model (if we have InventoryItem objects)
+      // Note: ML model kept for future fallback implementation
+      
+      // 3️⃣ FALLBACK: Local generator
+      final localRecipes = _getFallbackRecipesFromNames(ingredientNames);
+      return localRecipes.take(3).toList(); // Return top 3 recipes
+      
     } catch (e) {
-      print('Error fetching recipes: $e');
-      return _getFallbackRecipes(ingredients);
+      print('❌ Error fetching recipes: $e');
+      return _getFallbackRecipesFromNames(ingredientNames).take(3).toList();
     }
   }
   
-  // Get recipes from TheMealDB (free API)
+  // Get recipes based on ingredients (wrapper for InventoryItem compatibility)
+  static Future<List<Map<String, dynamic>>> getRecipesByIngredients(List<InventoryItem> ingredients) async {
+    final ingredientNames = ingredients.map((i) => i.name).toList();
+    return getRecipesByIngredientsString(ingredientNames);
+  }
+  
+  // Call HuggingFace Custom Recipe API
+  static Future<List<Map<String, dynamic>>> _getRecipesFromHuggingFace(List<String> ingredientNames) async {
+    try {
+      final ingredientsString = ingredientNames.join(' ');
+      
+      final response = await http.post(
+        Uri.parse(_huggingFaceApiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'ingredients': ingredientsString,
+          'top_k': 20, // Request 20 recipes, we'll take top 3
+        }),
+      ).timeout(const Duration(seconds: 30));
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('📊 Received ${data.length} recipes from HuggingFace API');
+        
+        return data.map((recipe) => _formatHuggingFaceRecipe(recipe)).toList();
+      } else {
+        print('❌ HuggingFace API error: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('❌ HuggingFace API exception: $e');
+      return [];
+    }
+  }
+  
+  // Helper function to detect incomplete instructions with placeholders
+  static bool _isIncompleteInstruction(String instruction) {
+    final lowerInstruction = instruction.toLowerCase();
+    
+    // Check for common incomplete patterns
+    // Pattern 1: Ends with "along with a" or "along with" without completion
+    if (RegExp(r'along with(?: a| an)?\s*$').hasMatch(lowerInstruction)) {
+      return true;
+    }
+    
+    // Pattern 2: Contains "by following the" without what to follow
+    if (RegExp(r'by following the\s*$').hasMatch(lowerInstruction)) {
+      return true;
+    }
+    
+    // Pattern 3: Ends with "followed by a" without completion
+    if (RegExp(r'followed by(?: a| an)?\s*$').hasMatch(lowerInstruction)) {
+      return true;
+    }
+    
+    // Pattern 4: Contains "serve with" at the end without completion
+    if (RegExp(r'serve with(?: a| an)?\s*$').hasMatch(lowerInstruction)) {
+      return true;
+    }
+    
+    // Pattern 5: Very short instruction that's likely incomplete (less than 10 chars)
+    if (instruction.length < 10 && !RegExp(r'^\d+\.').hasMatch(instruction)) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  // Format HuggingFace recipe to our app format
+  static Map<String, dynamic> _formatHuggingFaceRecipe(Map<String, dynamic> recipe) {
+    // Parse instructions from pipe-separated format
+    final instructionsRaw = recipe['instructions'] as String? ?? '';
+    final instructions = instructionsRaw
+        .split('|')
+        .where((s) => s.trim().isNotEmpty)
+        .map((s) => s.trim())
+        .where((s) => !_isIncompleteInstruction(s)) // Filter incomplete sentences
+        .toList();
+    
+    // Calculate difficulty based on instruction count
+    String difficulty = 'Easy';
+    if (instructions.length > 15) {
+      difficulty = 'Hard';
+    } else if (instructions.length > 8) {
+      difficulty = 'Medium';
+    }
+    
+    // Calculate cooking time based on instruction count
+    final timeEstimate = (instructions.length * 3).clamp(10, 90);
+    
+    // Calculate waste reduction from quality score
+    final qualityScore = (recipe['quality_score'] as num?) ?? 0.9;
+    final wasteReduction = (qualityScore * 100).round();
+    
+    return {
+      'name': recipe['title'] ?? 'Unknown Recipe',
+      'description': 'Professional recipe recommended by AI based on your ingredients',
+      'time': '$timeEstimate min',
+      'difficulty': difficulty,
+      'type': 'main',
+      'wasteReduction': wasteReduction,
+      'ingredients': List<String>.from(recipe['ingredients'] ?? []),
+      'instructions': instructions.isEmpty 
+          ? ['Follow standard cooking procedures for the ingredients']
+          : instructions,
+      'nutritionalValue': 'Balanced meal with fresh ingredients',
+      'serves': '2-4 people',
+      'source': 'HuggingFace Recipe AI',
+      'similarity': recipe['similarity'],
+      'quality_score': recipe['quality_score'],
+      'final_score': recipe['final_score'],
+    };
+  }
+  
+  // Get recipes from TheMealDB (free API) - KEPT FOR FUTURE FALLBACK
+  // ignore: unused_element
   static Future<List<Map<String, dynamic>>> _getRecipesFromMealDB(List<InventoryItem> ingredients) async {
     final recipes = <Map<String, dynamic>>[];
     
@@ -275,7 +361,8 @@ class RecipeApiService {
   }
   
   
-  // Smart local recipe generator for common ingredient combinations
+  // Smart local recipe generator for common ingredient combinations - KEPT FOR FUTURE FALLBACK
+  // ignore: unused_element
   static List<Map<String, dynamic>> _getSmartLocalRecipes(List<InventoryItem> ingredients) {
     final recipes = <Map<String, dynamic>>[];
     final ingredientNames = ingredients.map((i) => i.name.toLowerCase()).toList();
@@ -906,7 +993,112 @@ class RecipeApiService {
     return recipes;
   }
   
-  // Fallback recipes when API fails
+  // Fallback recipes when API fails (from ingredient names only)
+  static List<Map<String, dynamic>> _getFallbackRecipesFromNames(List<String> ingredientNames) {
+    final recipes = <Map<String, dynamic>>[];
+    
+    // Convert to lowercase for matching
+    final lowerNames = ingredientNames.map((n) => n.toLowerCase()).toList();
+    
+    // Create simple fallback recipes based on ingredient names
+    if (lowerNames.any((n) => n.contains('rice'))) {
+      recipes.add({
+        'name': 'Simple Rice Pilaf',
+        'description': 'Flavorful rice dish with your available ingredients',
+        'time': '25 min',
+        'difficulty': 'Easy',
+        'type': 'main',
+        'wasteReduction': 95,
+        'ingredients': ingredientNames,
+        'instructions': [
+          '1. Wash rice and soak for 15 minutes',
+          '2. Heat oil in a pan, add onions and cook until soft',
+          '3. Add your vegetables and sauté for 2-3 minutes',
+          '4. Add rice, salt, and water (1:2 ratio)',
+          '5. Cover and cook until rice is done',
+          '6. Garnish with fresh herbs and serve hot'
+        ],
+        'nutritionalValue': 'Complete meal with rice and vegetables',
+        'serves': '3-4 people',
+        'source': 'Fallback Generator',
+        'cuisine': 'International',
+      });
+    }
+    
+    if (lowerNames.any((n) => n.contains('chicken'))) {
+      recipes.add({
+        'name': 'Simple Chicken Stir Fry',
+        'description': 'Quick chicken dish with your ingredients',
+        'time': '20 min',
+        'difficulty': 'Easy',
+        'type': 'main',
+        'wasteReduction': 90,
+        'ingredients': ingredientNames,
+        'instructions': [
+          '1. Cut chicken into pieces and season with salt and pepper',
+          '2. Heat oil in a pan, add chicken and cook until done',
+          '3. Add your vegetables and cook for 5 minutes',
+          '4. Season with salt, pepper, and herbs',
+          '5. Serve hot with rice or bread'
+        ],
+        'nutritionalValue': 'High protein meal',
+        'serves': '2-3 people',
+        'source': 'Fallback Generator',
+        'cuisine': 'International',
+      });
+    }
+    
+    if (lowerNames.any((n) => n.contains('pasta'))) {
+      recipes.add({
+        'name': 'Simple Pasta Dish',
+        'description': 'Quick pasta with your ingredients',
+        'time': '20 min',
+        'difficulty': 'Easy',
+        'type': 'main',
+        'wasteReduction': 85,
+        'ingredients': ingredientNames,
+        'instructions': [
+          '1. Boil pasta according to package instructions',
+          '2. Heat oil in a pan, add your ingredients',
+          '3. Season with salt, pepper, and herbs',
+          '4. Drain pasta and combine with other ingredients',
+          '5. Toss well and serve hot'
+        ],
+        'nutritionalValue': 'Comforting pasta dish',
+        'serves': '2-3 people',
+        'source': 'Fallback Generator',
+        'cuisine': 'Italian',
+      });
+    }
+    
+    // Generic recipe if no specific ingredients match
+    if (recipes.isEmpty) {
+      recipes.add({
+        'name': 'Simple Stir Fry',
+        'description': 'Quick dish using your ingredients',
+        'time': '15 min',
+        'difficulty': 'Easy',
+        'type': 'main',
+        'wasteReduction': 85,
+        'ingredients': ingredientNames,
+        'instructions': [
+          '1. Heat oil in a pan',
+          '2. Add your ingredients and cook for 5-7 minutes',
+          '3. Season with salt, pepper, and herbs',
+          '4. Serve hot'
+        ],
+        'nutritionalValue': 'Nutritious dish with fresh ingredients',
+        'serves': '2-3 people',
+        'source': 'Fallback Generator',
+        'cuisine': 'International',
+      });
+    }
+    
+    return recipes;
+  }
+  
+  // Fallback recipes when API fails - KEPT FOR FUTURE FALLBACK
+  // ignore: unused_element
   static List<Map<String, dynamic>> _getFallbackRecipes(List<InventoryItem> ingredients) {
     final recipes = <Map<String, dynamic>>[];
     
