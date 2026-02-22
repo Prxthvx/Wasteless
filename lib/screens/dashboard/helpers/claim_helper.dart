@@ -67,7 +67,7 @@ class ClaimHelper {
                   status: 'claimed',
                   claimedBy: profile.id,
                   claimedAt: DateTime.now(),
-                  claimMessage: 'Interested in claiming this donation.',
+                  claimMessage: 'Claiming this donation.',
                 );
                 onClaim(donation);
                 Navigator.of(context).pop();

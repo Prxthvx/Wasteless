@@ -57,6 +57,18 @@ class DonationRepository {
         .insert(payload)
         .select()
         .single();
+    
+    // Update donation status to unavailable and set claim details
+    await _client
+        .from('donations')
+        .update({
+          'status': 'unavailable',
+          'claimed_by': ngoId,
+          'claimed_at': DateTime.now().toIso8601String(),
+          'claim_message': 'Donation claimed',
+        })
+        .eq('id', donationId);
+    
     return DonationClaim.fromJson(Map<String, dynamic>.from(data));
   }
 
