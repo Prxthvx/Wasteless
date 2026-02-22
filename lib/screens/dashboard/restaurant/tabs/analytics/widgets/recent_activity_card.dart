@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class RecentActivityCard extends StatelessWidget {
-  const RecentActivityCard({super.key});
+  final int claimedDonationsCount;
+  const RecentActivityCard({super.key, required this.claimedDonationsCount});
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +18,10 @@ class RecentActivityCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: Colors.purple[600]),
+                Icon(Icons.volunteer_activism, color: Colors.purple[600]),
                 const SizedBox(width: 8),
                 const Text(
-                  'Recent Activity',
+                  'Donation Updates',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -29,30 +30,12 @@ class RecentActivityCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-
-            const _ActivityItem(
-              title: 'Added Chicken to inventory',
-              time: '2 hours ago',
-              icon: Icons.add_circle,
-              color: Colors.green,
-            ),
-            const _ActivityItem(
-              title: 'Donated 5kg vegetables',
-              time: '1 day ago',
-              icon: Icons.favorite,
-              color: Colors.red,
-            ),
-            const _ActivityItem(
-              title: 'Generated 3 recipes',
-              time: '2 days ago',
-              icon: Icons.restaurant_menu,
-              color: Colors.orange,
-            ),
-            const _ActivityItem(
-              title: 'Saved 2kg from waste',
-              time: '3 days ago',
-              icon: Icons.eco,
-              color: Colors.green,
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                "Number of NGOs who claimed food: 5\nNumber of items donations claimed: $claimedDonationsCount",
+                style: TextStyle(fontSize: 16, color: Colors.black87),
+              ),
             ),
           ],
         ),

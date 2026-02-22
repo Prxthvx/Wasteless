@@ -47,11 +47,12 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
   }
 
   Map<String, dynamic> analytics = {
-  'totalWasteSaved': 0,
-  'donationsMade': 0,
-  'peopleHelped': 0,
-  'costSavings': 0,
-  'expiringSoon': 0,
+    'totalWasteSaved': 0,
+    'donationsMade': 0,
+    'peopleHelped': 0,
+    'costSavings': 0,
+    'expiringSoon': 0,
+    'claimedDonationsCount': 0,
   };
 
   void calculateAnalytics() {
@@ -84,12 +85,14 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
   // Estimated savings from recipes
   totalWasteSaved += inventory.length * 0.5;
 
+  final claimedDonationsCount = donations.where((d) => d.status == 'claimed').length;
   analytics = {
     'totalWasteSaved': totalWasteSaved.round(),
     'donationsMade': donationsMade,
     'peopleHelped': peopleHelped,
     'costSavings': costSavings.round(),
     'expiringSoon': expiringSoon,
+    'claimedDonationsCount': claimedDonationsCount,
   };
 
   notifyListeners();
@@ -158,7 +161,7 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
     );
 
     // Keep local state in sync
-    inventory.add(savedItem);
+    // inventory.add(savedItem); // Removed duplicate addition
     notifyListeners();
 
     return savedItem;

@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../../view_model/restaurant_dashboard_view_model.dart';
 
 class WasteReductionChart extends StatelessWidget {
-  const WasteReductionChart({super.key});
-  
+  final RestaurantDashboardViewModel viewModel;
+  const WasteReductionChart({super.key, required this.viewModel});
+
   @override
   Widget build(BuildContext context) {
+    // Calculate expiring items per month
+    final now = DateTime.now();
+    final Map<int, int> monthCounts = {};
+    for (var item in viewModel.inventory) {
+      final month = item.expiryDate.month;
+      monthCounts[month] = (monthCounts[month] ?? 0) + 1;
+    }
+    final months = List.generate(12, (i) => i + 1);
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -20,7 +31,7 @@ class WasteReductionChart extends StatelessWidget {
                 Icon(Icons.trending_up, color: Colors.green[600]),
                 const SizedBox(width: 8),
                 const Text(
-                  'Waste Reduction Trend',
+                  'Expiring Items Trend',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -29,22 +40,15 @@ class WasteReductionChart extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Simple bar chart representation
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: const [
-                _ChartBar(label: 'Jan', value: 0.3),
-                _ChartBar(label: 'Feb', value: 0.5),
-                _ChartBar(label: 'Mar', value: 0.7),
-                _ChartBar(label: 'Apr', value: 0.6),
-                _ChartBar(label: 'May', value: 0.8),
-                _ChartBar(label: 'Jun', value: 0.9),
-              ],
+              children: months.map((m) {
+                final count = monthCounts[m] ?? 0;
+                final label = _monthLabel(m);
+                return _ChartBar(label: label, value: count);
+              }).toList(),
             ),
-
             const SizedBox(height: 16),
-
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -55,9 +59,9 @@ class WasteReductionChart extends StatelessWidget {
                 children: [
                   Icon(Icons.eco, color: Colors.green[600], size: 20),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'You\'ve reduced waste by 35% this month!',
+                      'This chart shows the number of food items expiring each month.',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: Colors.green,
@@ -72,11 +76,19 @@ class WasteReductionChart extends StatelessWidget {
       ),
     );
   }
+
+  String _monthLabel(int month) {
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return monthNames[month - 1];
+  }
 }
 
 class _ChartBar extends StatelessWidget {
   final String label;
-  final double value;
+  final int value;
 
   const _ChartBar({
     required this.label,
@@ -88,10 +100,10 @@ class _ChartBar extends StatelessWidget {
     return Column(
       children: [
         Container(
-          height: 100 * value,
+          height: value == 0 ? 8 : (value * 12).toDouble(),
           width: 20,
           decoration: BoxDecoration(
-            color: Colors.green,
+            color: value == 0 ? Colors.grey[300] : Colors.green,
             borderRadius: BorderRadius.circular(6),
           ),
         ),
@@ -99,6 +111,10 @@ class _ChartBar extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(fontSize: 12),
+        ),
+        Text(
+          value.toString(),
+          style: TextStyle(fontSize: 11, color: Colors.grey[700]),
         ),
       ],
     );
