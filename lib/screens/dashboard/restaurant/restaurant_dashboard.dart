@@ -160,7 +160,10 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             onGenerateRecipe: _showRecipeGenerationDialog,
             onGenerateAdvancedRecipe: _showAdvancedRecipeDialog,
           ),
-          RestaurantAnalyticsTab(viewModel: _viewModel),
+          RestaurantAnalyticsTab(
+            viewModel: _viewModel,
+            onNavigate: (index) => _tabController.animateTo(index),
+          ),
         ],
       ),
       drawer: RestaurantDashboardDrawer(
@@ -285,13 +288,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 quantity: donation.quantity,
                 expiryDate: donation.expiryDate,
               );
-              if (savedDonation != null) {
-                setState(() {
-                  _viewModel.donations.add(savedDonation);
-                });
-                // Recalculate analytics after adding donation
-                _viewModel.calculateAnalytics();
-              }
+              // Donation already added in addDonation; removed duplicate addition
+              // Recalculate analytics after adding donation
+              _viewModel.calculateAnalytics();
             } else {
               setState(() {
                 _viewModel.donations.add(donation);
