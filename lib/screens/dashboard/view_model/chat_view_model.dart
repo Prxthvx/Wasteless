@@ -252,86 +252,86 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   /// Send a message with optimistic UI update
-  Future<void> sendMessage({
-    required String senderId,
-    required String receiverId,
-    required String content,
-  }) async {
-    if (currentThreadId == null || content.trim().isEmpty) {
-      debugPrint('[ChatViewModel] Cannot send message: threadId=$currentThreadId, content="${content.trim()}"');
-      errorMessage = 'Cannot send message: Invalid data';
-      notifyListeners();
-      return;
-    }
+  // Future<void> sendMessage({
+  //   required String senderId,
+  //   required String receiverId,
+  //   required String content,
+  // }) async {
+  //   if (currentThreadId == null || content.trim().isEmpty) {
+  //     debugPrint('[ChatViewModel] Cannot send message: threadId=$currentThreadId, content="${content.trim()}"');
+  //     errorMessage = 'Cannot send message: Invalid data';
+  //     notifyListeners();
+  //     return;
+  //   }
 
-    debugPrint('[ChatViewModel] Sending message in thread: $currentThreadId');
-    debugPrint('[ChatViewModel] Sender: $senderId, Receiver: $receiverId');
-    debugPrint('[ChatViewModel] Content: "${content.trim()}"');
+  //   debugPrint('[ChatViewModel] Sending message in thread: $currentThreadId');
+  //   debugPrint('[ChatViewModel] Sender: $senderId, Receiver: $receiverId');
+  //   debugPrint('[ChatViewModel] Content: "${content.trim()}"');
 
-    // Create optimistic message
-    final optimisticMessage = Message(
-      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
-      threadId: currentThreadId!,
-      senderId: senderId,
-      receiverId: receiverId,
-      content: content.trim(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-      isRead: false,
-    );
+  //   // Create optimistic message
+  //   final optimisticMessage = Message(
+  //     id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+  //     threadId: currentThreadId!,
+  //     senderId: senderId,
+  //     receiverId: receiverId,
+  //     content: content.trim(),
+  //     createdAt: DateTime.now(),
+  //     updatedAt: DateTime.now(),
+  //     isRead: false,
+  //   );
 
-    // Add optimistic message to list
-    messages.add(optimisticMessage);
-    isSendingMessage = true;
-    notifyListeners();
+  //   // Add optimistic message to list
+  //   messages.add(optimisticMessage);
+  //   isSendingMessage = true;
+  //   notifyListeners();
 
-    try {
-      // Send actual message
-      debugPrint('[ChatViewModel] Calling chatService.sendMessage...');
-      final sentMessage = await _chatService.sendMessage(
-        threadId: currentThreadId!,
-        senderId: senderId,
-        receiverId: receiverId,
-        content: content.trim(),
-      );
+  //   try {
+  //     // Send actual message
+  //     debugPrint('[ChatViewModel] Calling chatService.sendMessage...');
+  //     final sentMessage = await _chatService.sendMessage(
+  //       threadId: currentThreadId!,
+  //       senderId: senderId,
+  //       receiverId: receiverId,
+  //       content: content.trim(),
+  //     );
 
-      debugPrint('[ChatViewModel] Message sent successfully, ID: ${sentMessage.id}');
+  //     debugPrint('[ChatViewModel] Message sent successfully, ID: ${sentMessage.id}');
 
-      // Replace optimistic message with real one
-      final index = messages.indexWhere((m) => m.id == optimisticMessage.id);
-      if (index != -1) {
-        messages[index] = sentMessage;
-        debugPrint('[ChatViewModel] Replaced optimistic message with real message');
-      } else {
-        // If optimistic message not found, check if real message already exists (from realtime)
-        final exists = messages.any((m) => m.id == sentMessage.id);
-        if (!exists) {
-          debugPrint('[ChatViewModel] Optimistic message not found, adding real message');
-          messages.add(sentMessage);
-        } else {
-          debugPrint('[ChatViewModel] Real message already exists (from realtime), skipping');
-        }
-      }
+  //     // Replace optimistic message with real one
+  //     final index = messages.indexWhere((m) => m.id == optimisticMessage.id);
+  //     if (index != -1) {
+  //       messages[index] = sentMessage;
+  //       debugPrint('[ChatViewModel] Replaced optimistic message with real message');
+  //     } else {
+  //       // If optimistic message not found, check if real message already exists (from realtime)
+  //       final exists = messages.any((m) => m.id == sentMessage.id);
+  //       if (!exists) {
+  //         debugPrint('[ChatViewModel] Optimistic message not found, adding real message');
+  //         messages.add(sentMessage);
+  //       } else {
+  //         debugPrint('[ChatViewModel] Real message already exists (from realtime), skipping');
+  //       }
+  //     }
 
-      debugPrint('[ChatViewModel] Message sent successfully. Total messages: ${messages.length}');
-      errorMessage = null; // Clear any previous errors
-      notifyListeners();
-    } catch (e, stackTrace) {
-      debugPrint('[ChatViewModel] ❌ Error sending message: $e');
-      debugPrint('Stack trace: $stackTrace');
+  //     debugPrint('[ChatViewModel] Message sent successfully. Total messages: ${messages.length}');
+  //     errorMessage = null; // Clear any previous errors
+  //     notifyListeners();
+  //   } catch (e, stackTrace) {
+  //     debugPrint('[ChatViewModel] ❌ Error sending message: $e');
+  //     debugPrint('Stack trace: $stackTrace');
       
-      // Remove optimistic message on error
-      messages.removeWhere((m) => m.id == optimisticMessage.id);
-      errorMessage = 'Failed to send message: ${e.toString()}';
-      notifyListeners();
+  //     // Remove optimistic message on error
+  //     messages.removeWhere((m) => m.id == optimisticMessage.id);
+  //     errorMessage = 'Failed to send message: ${e.toString()}';
+  //     notifyListeners();
       
-      // Re-throw so UI can catch it
-      rethrow;
-    } finally {
-      isSendingMessage = false;
-      notifyListeners();
-    }
-  }
+  //     // Re-throw so UI can catch it
+  //     rethrow;
+  //   } finally {
+  //     isSendingMessage = false;
+  //     notifyListeners();
+  //   }
+  // }
 
   /// Mark thread as read
   Future<void> markThreadAsRead({required String userId}) async {
@@ -355,6 +355,65 @@ class ChatViewModel extends ChangeNotifier {
     }
   }
 
+    /// Send a message (simplified - no optimistic updates)
+  Future<void> sendMessage({
+    required String senderId,
+    required String receiverId,
+    required String content,
+  }) async {
+    if (currentThreadId == null || content.trim().isEmpty) {
+      debugPrint('[ChatViewModel] Cannot send message: threadId=$currentThreadId, content="${content.trim()}"');
+      errorMessage = 'Cannot send message: Invalid data';
+      notifyListeners();
+      return;
+    }
+
+    debugPrint('[ChatViewModel] Sending message in thread: $currentThreadId');
+    debugPrint('[ChatViewModel] Sender: $senderId, Receiver: $receiverId');
+    debugPrint('[ChatViewModel] Content: "${content.trim()}"');
+
+    isSendingMessage = true;
+    notifyListeners();
+
+    try {
+      // Send message directly without optimistic update
+      debugPrint('[ChatViewModel] Calling chatService.sendMessage...');
+      final sentMessage = await _chatService.sendMessage(
+        threadId: currentThreadId!,
+        senderId: senderId,
+        receiverId: receiverId,
+        content: content.trim(),
+      );
+
+      debugPrint('[ChatViewModel] Message sent successfully, ID: ${sentMessage.id}');
+
+      // Check if message already exists (from realtime subscription)
+      final exists = messages.any((m) => m.id == sentMessage.id);
+      
+      if (!exists) {
+        debugPrint('[ChatViewModel] Adding sent message to list');
+        messages.add(sentMessage);
+        notifyListeners();
+      } else {
+        debugPrint('[ChatViewModel] Message already added by realtime, skipping');
+      }
+
+      debugPrint('[ChatViewModel] Message sent successfully. Total messages: ${messages.length}');
+      errorMessage = null;
+    } catch (e, stackTrace) {
+      debugPrint('[ChatViewModel] ❌ Error sending message: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      errorMessage = 'Failed to send message: ${e.toString()}';
+      notifyListeners();
+      
+      // Re-throw so UI can catch it
+      rethrow;
+    } finally {
+      isSendingMessage = false;
+      notifyListeners();
+    }
+  }
   /// Delete a message
   Future<void> deleteMessage({
     required String messageId,
