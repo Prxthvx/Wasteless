@@ -10,26 +10,49 @@ class DonationRepository {
 
   Future<List<Donation>> listAvailableDonations() async {
     try {
+      // Fetch all donation IDs that have active claims in donation_claims
+      final activeClaims = await _client
+          .from('donation_claims')
+          .select('donation_id')
+          .neq('status', 'cancelled')
+          .neq('status', 'rejected');
+
+      final claimedDonationIds = (activeClaims as List)
+          .map((e) => (e as Map<String, dynamic>)['donation_id'] as String)
+          .toSet();
+
+      debugPrint('[DonationRepository] Found ${claimedDonationIds.length} actively claimed donations to exclude');
+
+      // Fetch available, non-expired donations
       final data = await _client
           .from('donations')
           .select('*, profiles!donations_restaurant_id_fkey(*)')
           .eq('status', 'available')
+          .gte('expiry_date', DateTime.now().toIso8601String().split('T')[0])
           .order('created_at', ascending: false);
-      debugPrint('[DonationRepository] Fetched ${(data as List).length} donations');
-      return (data as List).map((e) {
-        try {
-          return Donation.fromJson(Map<String, dynamic>.from(e));
-        } catch (err, stackTrace) {
-          debugPrint('[DonationRepository] Error parsing donation: $e');
-          debugPrint('Error: $err');
-          debugPrint('Stack trace: $stackTrace');
-          return null;
-        }
-      }).whereType<Donation>().toList();
+
+      // Exclude donations that have active claims
+      final availableDonations = (data as List)
+          .where((e) => !claimedDonationIds.contains((e as Map<String, dynamic>)['id']))
+          .map((e) {
+            try {
+              return Donation.fromJson(Map<String, dynamic>.from(e));
+            } catch (err, stackTrace) {
+              debugPrint('[DonationRepository] Error parsing donation: $e');
+              debugPrint('Error: $err');
+              debugPrint('Stack trace: $stackTrace');
+              return null;
+            }
+          })
+          .whereType<Donation>()
+          .toList();
+
+      debugPrint('[DonationRepository] Fetched ${availableDonations.length} available donations');
+      return availableDonations;
     } catch (e, stackTrace) {
       debugPrint('[DonationRepository] Error fetching donations: $e');
       debugPrint('Stack trace: $stackTrace');
-      rethrow; // Rethrow to let caller handle
+      rethrow;
     }
   }
 
@@ -47,17 +70,81 @@ class DonationRepository {
     required String ngoId,
     String? claimMessage,
   }) async {
-    final payload = {
-      'donation_id': donationId,
-      'ngo_id': ngoId,
-      if (claimMessage != null) 'claim_message': claimMessage,
-    };
-    final data = await _client
-        .from('donation_claims')
-        .insert(payload)
+    debugPrint('[DonationRepository] Attempting to claim donation $donationId for NGO $ngoId');
+
+    // Step 1: Verify the donation exists, is available and not expired
+    final donation = await _client
+        .from('donations')
         .select()
+        .eq('id', donationId)
         .single();
-    return DonationClaim.fromJson(Map<String, dynamic>.from(data));
+
+    final status = donation['status'] as String;
+    final expiryDateStr = donation['expiry_date'] as String;
+    final expiryDate = DateTime.parse(expiryDateStr);
+
+    debugPrint('[DonationRepository] Donation status: $status, expiry: $expiryDateStr');
+
+    if (status == 'completed' || status == 'cancelled') {
+      throw Exception('Donation is no longer available. Status: $status');
+    }
+
+    if (expiryDate.isBefore(DateTime.now())) {
+      throw Exception('Donation has expired');
+    }
+
+    // Step 2: Check if this NGO already has an active claim on this donation
+    final existingClaims = await _client
+        .from('donation_claims')
+        .select()
+        .eq('donation_id', donationId)
+        .eq('ngo_id', ngoId)
+        .neq('status', 'cancelled')
+        .neq('status', 'rejected');
+
+    if ((existingClaims as List).isNotEmpty) {
+      debugPrint('[DonationRepository] NGO already has a claim on this donation');
+      throw Exception('You have already claimed this donation');
+    }
+
+    // Step 3: Check if the donation is already claimed by another NGO
+    final otherClaims = await _client
+        .from('donation_claims')
+        .select()
+        .eq('donation_id', donationId)
+        .neq('ngo_id', ngoId)
+        .neq('status', 'cancelled')
+        .neq('status', 'rejected');
+
+    if ((otherClaims as List).isNotEmpty) {
+      debugPrint('[DonationRepository] Donation already claimed by another NGO');
+      throw Exception('Donation has already been claimed');
+    }
+
+    // Step 4: Insert claim record into donation_claims
+    // Note: NGOs do not have UPDATE permission on the donations table (RLS policy).
+    // The donations table status is managed by the restaurant side.
+    try {
+      final payload = {
+        'donation_id': donationId,
+        'ngo_id': ngoId,
+        if (claimMessage != null) 'claim_message': claimMessage,
+        'status': 'claimed',
+      };
+
+      debugPrint('[DonationRepository] Inserting claim record');
+      final data = await _client
+          .from('donation_claims')
+          .insert(payload)
+          .select()
+          .single();
+
+      debugPrint('[DonationRepository] Claim successful: $data');
+      return DonationClaim.fromJson(Map<String, dynamic>.from(data));
+    } catch (e) {
+      debugPrint('[DonationRepository] Error inserting claim: $e');
+      rethrow;
+    }
   }
 
   Future<List<DonationClaim>> listClaimsForDonation(String donationId) async {
@@ -110,13 +197,24 @@ class DonationRepository {
         .eq('id', donationId);
   }
 
-  Future<Donation?> postDonation({
+  Future<Donation> postDonation({
     required String restaurantId,
+    required String inventoryItemId,
     required String title,
     String? description,
     required String quantity,
     required DateTime expiryDate,
   }) async {
+    // Step 1: Update inventory item status to 'donated'
+    await _client
+        .from('inventory_items')
+        .update({
+          'status': 'donated',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', inventoryItemId);
+
+    // Step 2: Create donation (without inventory_item_id since the database doesn't have this column)
     final payload = {
       'restaurant_id': restaurantId,
       'title': title,
@@ -136,12 +234,31 @@ class DonationRepository {
         return Donation.fromJson(Map<String, dynamic>.from(data));
       } catch (err) {
         print('[DonationRepository] Error parsing created donation: $data\nError: $err');
-        return null;
+        throw Exception('Failed to parse created donation: $err');
       }
     } catch (e) {
       print('[DonationRepository] Error creating donation: $e');
-      return null;
+      throw Exception('Failed to create donation: $e');
+    }
+  }
+
+  /// Verify if a donation is still available and not expired
+  Future<bool> isDonationAvailable(String donationId) async {
+    try {
+      final donation = await _client
+          .from('donations')
+          .select('status, expiry_date')
+          .eq('id', donationId)
+          .single();
+      
+      final status = donation['status'] as String;
+      final expiryDateStr = donation['expiry_date'] as String;
+      final expiryDate = DateTime.parse(expiryDateStr);
+      
+      return status == 'available' && expiryDate.isAfter(DateTime.now());
+    } catch (e) {
+      debugPrint('[DonationRepository] Error checking donation availability: $e');
+      return false;
     }
   }
 }
-

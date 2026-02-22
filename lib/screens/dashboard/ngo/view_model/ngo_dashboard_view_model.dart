@@ -94,10 +94,16 @@ class NGODashboardViewModel {
     required Donation donation,
     required String userId,
     }) {
+      // Check if donation is expired before claiming
+      if (donation.expiryDate.isBefore(DateTime.now())) {
+        throw Exception('Cannot claim expired donation');
+      }
+      
+      // Check local state as a preliminary check (backend will be source of truth)
       final alreadyClaimed = claimedDonations.any((d) => d.id == donation.id);
       if (alreadyClaimed) 
        {
-        throw Exception('Donation already claimed');
+        throw Exception('Donation already claimed locally');
        }
     // Remove from available list
     availableDonations.removeWhere((d) => d.id == donation.id);
@@ -119,6 +125,17 @@ class NGODashboardViewModel {
       ),
     );
 
+    // Recalculate analytics
+    analytics = AnalyticsHelper.calculateAnalytics(claimedDonations);
+  }
+
+  void rollbackClaim({required Donation donation}) {
+    // Remove from claimed list if claim failed
+    claimedDonations.removeWhere((d) => d.id == donation.id);
+    
+    // Add back to available list
+    availableDonations.add(donation);
+    
     // Recalculate analytics
     analytics = AnalyticsHelper.calculateAnalytics(claimedDonations);
   }

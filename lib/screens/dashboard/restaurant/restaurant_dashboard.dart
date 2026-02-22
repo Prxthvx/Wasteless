@@ -146,6 +146,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             onNavigate: (index) => _tabController.animateTo(index),
           ),
           RestaurantInventoryTab(
+            key: ValueKey(_viewModel.inventory.length),
             viewModel: _viewModel,
             onRefresh: _loadData,
             onItemAction: _handleInventoryAction,
@@ -279,29 +280,30 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         profile: widget.profile,
         item: item,
         onDonationPosted: (donation) async {
+          // Capture ScaffoldMessenger before any async operations that might close the dialog
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
           try {
             if (widget.profile.id != 'demo-user-id') {
-              final savedDonation = await _viewModel.addDonation(
+              await _viewModel.addDonation(
                 restaurantId: widget.profile.id,
+                inventoryItemId: item.id,
                 title: donation.title,
                 description: donation.description,
                 quantity: donation.quantity,
                 expiryDate: donation.expiryDate,
               );
-              // Donation already added in addDonation; removed duplicate addition
-              // Recalculate analytics after adding donation
-              _viewModel.calculateAnalytics();
             } else {
               setState(() {
                 _viewModel.donations.add(donation);
+                // Remove from inventory in demo mode
+                _viewModel.inventory.removeWhere((i) => i.id == item.id);
               });
-              // Recalculate analytics after adding donation
               _viewModel.calculateAnalytics();
             }
-            // Close dialog only once
-            Navigator.of(context).pop();
-            // Show success message
-            ScaffoldMessenger.of(context).showSnackBar(
+            // Close dialog
+            if (mounted) Navigator.of(context).pop();
+            // Show success message using captured messenger
+            scaffoldMessenger.showSnackBar(
               const SnackBar(
                 content: Text('Donation posted successfully!'),
                 backgroundColor: Colors.green,
@@ -309,9 +311,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             );
           } catch (e) {
             // Close dialog on error too
-            Navigator.of(context).pop();
-            // Show error message
-            ScaffoldMessenger.of(context).showSnackBar(
+            if (mounted) Navigator.of(context).pop();
+            // Reload data to recover from error state
+            await _loadData();
+            // Show error message using captured messenger
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Text('Error posting donation: $e'),
                 backgroundColor: Colors.red,

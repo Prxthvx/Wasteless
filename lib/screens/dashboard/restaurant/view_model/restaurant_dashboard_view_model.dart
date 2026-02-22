@@ -167,8 +167,9 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
     return savedItem;
   }
 
-  Future<Donation?> addDonation({
+  Future<Donation> addDonation({
     required String restaurantId,
+    required String inventoryItemId,
     required String title,
     String? description,
     required String quantity,
@@ -176,6 +177,7 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
       }) async {
     final savedDonation = await _donationRepo.postDonation(
       restaurantId: restaurantId,
+      inventoryItemId: inventoryItemId,
       title: title,
       description: description,
       quantity: quantity,
@@ -183,10 +185,11 @@ class RestaurantDashboardViewModel extends ChangeNotifier {
     );
 
     // Keep local state in sync
-    if (savedDonation != null) {
-          donations.insert(0, savedDonation);
-          notifyListeners();
-    }
+    donations.insert(0, savedDonation);
+    // Remove from inventory list since it's now donated
+    inventory.removeWhere((item) => item.id == inventoryItemId);
+    calculateAnalytics();
+    notifyListeners();
 
     return savedDonation;
   }

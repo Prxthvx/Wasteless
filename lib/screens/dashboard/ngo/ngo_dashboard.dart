@@ -155,6 +155,10 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         );
         });
       },
+      onRefresh: () async {
+        // Refresh data from backend after claim
+        await _loadData();
+      },
     );
   }
 

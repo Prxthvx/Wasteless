@@ -95,6 +95,7 @@ class _PostDonationDialogState extends State<PostDonationDialog> {
             if (_formKey.currentState!.validate()) {
               final donation = Donation(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
+                inventoryItemId: widget.item.id,
                 restaurantId: widget.profile.id,
                 title: _titleCtrl.text.trim(),
                 description: _descriptionCtrl.text.trim(),

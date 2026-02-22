@@ -13,6 +13,7 @@ class InventoryRepository {
         .from('inventory_items')
         .select()
         .eq('restaurant_id', restaurantId)
+        .neq('status', 'donated') // Filter out donated items
         .order('expiry_date', ascending: true);
     return (data as List).map((e) => InventoryItem.fromJson(Map<String, dynamic>.from(e))).toList();
   }
@@ -74,11 +75,22 @@ class InventoryRepository {
 
   Future<Donation> postDonation({
     required String restaurantId,
+    required String inventoryItemId,
     required String title,
     String? description,
     required String quantity,
     required DateTime expiryDate,
   }) async {
+    // Step 1: Update inventory item status to 'donated'
+    await _client
+        .from('inventory_items')
+        .update({
+          'status': 'donated',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', inventoryItemId);
+
+    // Step 2: Create donation (without inventory_item_id since the database doesn't have this column)
     final payload = {
       'restaurant_id': restaurantId,
       'title': title,

@@ -10,6 +10,7 @@ class ClaimHelper {
     required Donation donation,
     required UserProfile profile,
     required Function(Donation) onClaim,
+    Function()? onRefresh,
   }) async {
     final restaurantProfile = donation.restaurantProfile;
     final parentContext = context;
@@ -55,37 +56,59 @@ class ClaimHelper {
           ElevatedButton(
             onPressed: () async {
               final repo = DonationRepository();
+              bool claimSuccessful = false;
               try {
+                // Perform atomic claim operation
                 await repo.claimDonation(
                   donationId: donation.id,
                   ngoId: profile.id,
                   claimMessage: 'Interested in claiming this donation.',
                 );
-                // Set status to 'claimed' after claim
-                await repo.updateDonationStatus(
-                  donationId: donation.id,
-                  status: 'claimed',
-                  claimedBy: profile.id,
-                  claimedAt: DateTime.now(),
-                  claimMessage: 'Interested in claiming this donation.',
-                );
+                
+                claimSuccessful = true;
+                
+                // Update local state
                 onClaim(donation);
+                
                 Navigator.of(context).pop();
+                
+                // Show success message
                 ScaffoldMessenger.of(parentContext).showSnackBar(
                   const SnackBar(
                     content: Text('Donation claimed successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                    backgroundColor: Colors.green,),
+                );             // Refresh the data from backend
+                if (onRefresh != null) {
+                  onRefresh();
+                }
               } catch (e) {
                 Navigator.of(context).pop();
                 print('[ClaimHelper] Error during claim: $e');
+                
+                // Show user-friendly error message
+                String errorMessage = 'Error claiming donation';
+                if (e.toString().contains('no longer available')) {
+                  errorMessage = 'This donation was already claimed by another NGO';
+                } else if (e.toString().contains('expired')) {
+                  errorMessage = 'This donation has expired';
+                } else if (e.toString().contains('duplicate')) {
+                  errorMessage = 'You have already claimed this donation';
+                } else {
+                  errorMessage = 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+                }
+                
                 ScaffoldMessenger.of(parentContext).showSnackBar(
                   SnackBar(
-                    content: Text('Error claiming donation: $e'),
+                    content: Text(errorMessage),
                     backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 4),
                   ),
                 );
+                
+                // If claim failed, refresh to show current state
+                if (!claimSuccessful && onRefresh != null) {
+                  onRefresh();
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
