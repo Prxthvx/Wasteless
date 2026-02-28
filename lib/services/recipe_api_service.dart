@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/inventory_item.dart';
 // ML model kept for future fallback implementation
@@ -25,16 +26,16 @@ class RecipeApiService {
   // Get recipes based on ingredients (using string list for custom input support)
   static Future<List<Map<String, dynamic>>> getRecipesByIngredientsString(List<String> ingredientNames) async {
     try {
-      print('🔥 Calling HuggingFace Recipe API with ingredients: ${ingredientNames.join(", ")}');
+      debugPrint('🔥 Calling HuggingFace Recipe API with ingredients: ${ingredientNames.join(", ")}');
       
       // 1️⃣ PRIMARY: HuggingFace Custom Recipe API
       final hfRecipes = await _getRecipesFromHuggingFace(ingredientNames);
       if (hfRecipes.isNotEmpty) {
-        print('✅ Got ${hfRecipes.length} recipes from HuggingFace API');
+        debugPrint('✅ Got ${hfRecipes.length} recipes from HuggingFace API');
         return hfRecipes.take(3).toList(); // Return top 3 recipes
       }
       
-      print('⚠️ HuggingFace API returned no recipes, trying fallbacks...');
+      debugPrint('⚠️ HuggingFace API returned no recipes, trying fallbacks...');
       
       // 2️⃣ FALLBACK: ML Model (if we have InventoryItem objects)
       // Note: ML model kept for future fallback implementation
@@ -44,7 +45,7 @@ class RecipeApiService {
       return localRecipes.take(3).toList(); // Return top 3 recipes
       
     } catch (e) {
-      print('❌ Error fetching recipes: $e');
+      debugPrint('❌ Error fetching recipes: $e');
       return _getFallbackRecipesFromNames(ingredientNames).take(3).toList();
     }
   }
@@ -73,15 +74,15 @@ class RecipeApiService {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        print('📊 Received ${data.length} recipes from HuggingFace API');
+        debugPrint('📊 Received ${data.length} recipes from HuggingFace API');
         
         return data.map((recipe) => _formatHuggingFaceRecipe(recipe)).toList();
       } else {
-        print('❌ HuggingFace API error: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ HuggingFace API error: ${response.statusCode} - ${response.body}');
         return [];
       }
     } catch (e) {
-      print('❌ HuggingFace API exception: $e');
+      debugPrint('❌ HuggingFace API exception: $e');
       return [];
     }
   }
@@ -188,7 +189,7 @@ class RecipeApiService {
           }
         }
       } catch (e) {
-        print('Error fetching from MealDB: $e');
+        debugPrint('Error fetching from MealDB: $e');
       }
     }
     
@@ -210,7 +211,7 @@ class RecipeApiService {
         }
       }
     } catch (e) {
-      print('Error fetching meal details: $e');
+      debugPrint('Error fetching meal details: $e');
     }
     return null;
   }
@@ -276,7 +277,7 @@ class RecipeApiService {
         return recipes.take(5).toList();
       }
     } catch (e) {
-      print('Error fetching from Spoonacular: $e');
+      debugPrint('Error fetching from Spoonacular: $e');
     }
     return [];
   }
@@ -293,7 +294,7 @@ class RecipeApiService {
         return _formatSpoonacularDetailedRecipe(data);
       }
     } catch (e) {
-      print('Error fetching recipe details: $e');
+      debugPrint('Error fetching recipe details: $e');
     }
     return null;
   }

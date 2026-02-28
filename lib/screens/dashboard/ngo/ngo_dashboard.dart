@@ -53,11 +53,13 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       isDemo: widget.profile.id == 'demo-user-id',
     );
   } catch (e) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error loading data: $e')),
     );
   }
 
+  if (!mounted) return;
   setState(() {});
 }
 
@@ -301,13 +303,14 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   Future<void> _signOut() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await SupabaseService.client.auth.signOut();
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Error signing out: $e')),
       );
     }

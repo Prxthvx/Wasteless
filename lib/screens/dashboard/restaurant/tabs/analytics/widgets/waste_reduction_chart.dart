@@ -8,7 +8,6 @@ class WasteReductionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Calculate expiring items per month
-    final now = DateTime.now();
     final Map<int, int> monthCounts = {};
     for (var item in viewModel.inventory) {
       final month = item.expiryDate.month;
@@ -52,7 +51,7 @@ class WasteReductionChart extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

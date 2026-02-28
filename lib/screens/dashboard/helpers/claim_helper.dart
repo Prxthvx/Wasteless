@@ -56,6 +56,8 @@ class ClaimHelper {
           ElevatedButton(
             onPressed: () async {
               final repo = DonationRepository();
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(parentContext);
               bool claimSuccessful = false;
               try {
                 // Perform atomic claim operation
@@ -70,10 +72,10 @@ class ClaimHelper {
                 // Update local state
                 onClaim(donation);
                 
-                Navigator.of(context).pop();
+                navigator.pop();
                 
                 // Show success message
-                ScaffoldMessenger.of(parentContext).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(
                     content: Text('Donation claimed successfully!'),
                     backgroundColor: Colors.green,),
@@ -82,8 +84,8 @@ class ClaimHelper {
                   onRefresh();
                 }
               } catch (e) {
-                Navigator.of(context).pop();
-                print('[ClaimHelper] Error during claim: $e');
+                navigator.pop();
+                debugPrint('[ClaimHelper] Error during claim: $e');
                 
                 // Show user-friendly error message
                 String errorMessage = 'Error claiming donation';
@@ -97,7 +99,7 @@ class ClaimHelper {
                   errorMessage = 'Error: ${e.toString().replaceAll('Exception: ', '')}';
                 }
                 
-                ScaffoldMessenger.of(parentContext).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text(errorMessage),
                     backgroundColor: Colors.red,

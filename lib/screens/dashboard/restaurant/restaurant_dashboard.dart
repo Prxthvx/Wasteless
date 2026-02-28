@@ -220,10 +220,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   void _showEditItemDialog(InventoryItem item) {
     showDialog(
       context: context,
-      builder: (context) => EditInventoryDialog(
+      builder: (dialogContext) => EditInventoryDialog(
         profile: widget.profile,
         item: item,
         onItemUpdated: (updatedItem) async {
+          final navigator = Navigator.of(dialogContext);
+          final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
           try {
             if (widget.profile.id != 'demo-user-id') {
               final savedItem = await _viewModel.updateInventoryItem(
@@ -253,15 +255,15 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 }
               });
             }
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
+            navigator.pop();
+            scaffoldMessenger.showSnackBar(
               const SnackBar(
                 content: Text('Item updated successfully!'),
                 backgroundColor: Colors.green,
               ),
             );
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Text('Error updating item: $e'),
                 backgroundColor: Colors.red,
@@ -276,12 +278,13 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   void _showPostDonationDialog(InventoryItem item) {
     showDialog(
       context: context,
-      builder: (context) => PostDonationDialog(
+      builder: (dialogContext) => PostDonationDialog(
         profile: widget.profile,
         item: item,
         onDonationPosted: (donation) async {
-          // Capture ScaffoldMessenger before any async operations that might close the dialog
-          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          // Capture ScaffoldMessenger and Navigator before any async operations
+          final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
+          final navigator = Navigator.of(dialogContext);
           try {
             if (widget.profile.id != 'demo-user-id') {
               await _viewModel.addDonation(
@@ -301,7 +304,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               _viewModel.calculateAnalytics();
             }
             // Close dialog
-            if (mounted) Navigator.of(context).pop();
+            navigator.pop();
             // Show success message using captured messenger
             scaffoldMessenger.showSnackBar(
               const SnackBar(
@@ -311,7 +314,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             );
           } catch (e) {
             // Close dialog on error too
-            if (mounted) Navigator.of(context).pop();
+            navigator.pop();
             // Reload data to recover from error state
             await _loadData();
             // Show error message using captured messenger
@@ -330,17 +333,19 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   void _deleteInventoryItem(InventoryItem item) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Item'),
         content: Text('Are you sure you want to delete ${item.name}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              final navigator = Navigator.of(dialogContext);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              navigator.pop();
               try {
                 if (widget.profile.id != 'demo-user-id') {
                   await _viewModel.deleteInventoryItem(
@@ -354,14 +359,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 });
                 // Recalculate analytics after deleting item
                 _viewModel.calculateAnalytics();
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(
                     content: Text('Item deleted successfully!'),
                     backgroundColor: Colors.green,
                   ),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text('Error deleting item: $e'),
                     backgroundColor: Colors.red,
@@ -391,15 +396,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   }
 
   Future<void> _signOut() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await SupabaseService.client.auth.signOut();
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error signing out: $e')));
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error signing out: $e')));
     }
   }
 
@@ -471,10 +475,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
       if (daysUntilExpiry <= 1) {
         urgency += 100;
-      } else if (daysUntilExpiry <= 2)
+      } else if (daysUntilExpiry <= 2) {
         urgency += 80;
-      else if (daysUntilExpiry <= 3)
+      } else if (daysUntilExpiry <= 3) {
         urgency += 60;
+      }
     }
     return urgency;
   }

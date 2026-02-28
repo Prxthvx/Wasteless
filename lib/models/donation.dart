@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'user_profile.dart';
 
 class Donation {
@@ -44,7 +45,7 @@ class Donation {
       }
       final profile = profileJson != null ? UserProfile.fromJson(profileJson) : null;
       if (profile == null || profile.latitude == null || profile.longitude == null) {
-        print('[Donation.fromJson] Missing restaurant coordinates for donation id: ${json['id']}');
+        debugPrint('[Donation.fromJson] Missing restaurant coordinates for donation id: ${json['id']}');
       }
       return Donation(
         id: json['id'] as String,
@@ -67,7 +68,7 @@ class Donation {
         restaurantProfile: profile,
       );
     } catch (e) {
-      print('[Donation.fromJson] Error parsing donation: $json\nError: $e');
+      debugPrint('[Donation.fromJson] Error parsing donation: $json\nError: $e');
       throw FormatException('Error parsing Donation: $e');
     }
   }

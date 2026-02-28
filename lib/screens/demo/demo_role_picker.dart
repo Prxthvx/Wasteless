@@ -118,8 +118,9 @@ class _DemoRolePickerScreenState extends State<DemoRolePickerScreen> {
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: () async {
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
                     await NotificationService.showDemoNotification();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                         content: Text(
                           'Demo notification sent! Check your device notifications.',

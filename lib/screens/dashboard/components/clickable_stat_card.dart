@@ -38,7 +38,7 @@ class ClickableStatCard extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 10,
-                color: color.withOpacity(0.7),
+                color: color.withValues(alpha: 0.7),
               ),
             ],
           ),

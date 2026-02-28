@@ -66,7 +66,9 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       if (!mounted) return;
       setState(() {
@@ -143,8 +145,9 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -168,8 +171,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty)
+                    if (v == null || v.isEmpty) {
                       return 'Please enter your email';
+                    }
                     if (!RegExp(
                       r'^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,4}$',
                     ).hasMatch(v)) {
@@ -197,10 +201,12 @@ class _SignupScreenState extends State<SignupScreen> {
                     border: const OutlineInputBorder(),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty)
+                    if (v == null || v.isEmpty) {
                       return 'Please enter a password';
-                    if (v.length < 6)
+                    }
+                    if (v.length < 6) {
                       return 'Password must be at least 6 characters';
+                    }
                     return null;
                   },
                 ),

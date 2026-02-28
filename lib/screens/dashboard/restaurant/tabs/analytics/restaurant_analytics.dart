@@ -5,7 +5,6 @@ import 'widgets/analytics_card.dart';
 import 'widgets/waste_reduction_chart.dart';
 import 'widgets/category_breakdown.dart';
 import '../overview/widgets/overview_recent_activity.dart';
-import 'widgets/environmental_impact_card.dart';
 
 class RestaurantAnalyticsTab extends StatelessWidget {
   final RestaurantDashboardViewModel viewModel;

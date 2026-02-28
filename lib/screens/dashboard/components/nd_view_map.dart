@@ -42,8 +42,8 @@ class _NDViewMapState extends State<NDViewMap> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            center: mapCenter,
-            zoom: _zoom,
+            initialCenter: mapCenter,
+            initialZoom: _zoom,
           ),
           children: [
             TileLayer(
@@ -105,7 +105,7 @@ class _NDViewMapState extends State<NDViewMap> {
                 onPressed: () {
                   setState(() {
                     _zoom = (_zoom + 1).clamp(1.0, 18.0);
-                    _mapController.move(_mapController.center, _zoom);
+                    _mapController.move(_mapController.camera.center, _zoom);
                   });
                 },
                 child: const Icon(Icons.zoom_in),
@@ -117,7 +117,7 @@ class _NDViewMapState extends State<NDViewMap> {
                 onPressed: () {
                   setState(() {
                     _zoom = (_zoom - 1).clamp(1.0, 18.0);
-                    _mapController.move(_mapController.center, _zoom);
+                    _mapController.move(_mapController.camera.center, _zoom);
                   });
                 },
                 child: const Icon(Icons.zoom_out),
@@ -144,7 +144,7 @@ class _NDViewMapState extends State<NDViewMap> {
           child: Container(
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.height,
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             child: mapWidget,
           ),
         ),

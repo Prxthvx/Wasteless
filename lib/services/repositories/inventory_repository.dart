@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../../services/supabase_service.dart';
 import '../../models/inventory_item.dart';
 import '../../models/donation.dart';
@@ -31,7 +32,7 @@ class InventoryRepository {
     String category = 'Other', // Added category parameter
   }) async {
     try {
-      print('Adding item to database with restaurantId: $restaurantId'); // Debug log
+      debugPrint('Adding item to database with restaurantId: $restaurantId');
       
       final insert = {
         'restaurant_id': restaurantId,
@@ -42,7 +43,7 @@ class InventoryRepository {
         'category': category, // Re-enabled now that database will have this column
       };
       
-      print('Insert data: $insert'); // Debug log
+      debugPrint('Insert data: $insert');
       
       final data = await _client
           .from('inventory_items')
@@ -50,11 +51,11 @@ class InventoryRepository {
           .select()
           .single();
       
-      print('Database response: $data'); // Debug log
+      debugPrint('Database response: $data');
       
       return InventoryItem.fromJson(Map<String, dynamic>.from(data));
     } catch (e) {
-      print('Error in addItem: $e'); // Debug log
+      debugPrint('Error in addItem: $e');
       rethrow;
     }
   }

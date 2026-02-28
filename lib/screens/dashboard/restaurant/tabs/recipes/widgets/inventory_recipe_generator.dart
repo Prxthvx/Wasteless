@@ -50,7 +50,7 @@ class InventoryRecipeGenerator extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 8,
             offset: const Offset(0, 2),
@@ -66,7 +66,7 @@ class InventoryRecipeGenerator extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -99,7 +99,7 @@ class InventoryRecipeGenerator extends StatelessWidget {
                 ? Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -149,10 +149,10 @@ class InventoryRecipeGenerator extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: isExpiring ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
+                            color: isExpiring ? Colors.orange.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isExpiring ? Colors.orange : Colors.grey.withOpacity(0.2),
+                              color: isExpiring ? Colors.orange : Colors.grey.withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),

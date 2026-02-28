@@ -26,12 +26,14 @@ class SettingsDialog extends StatelessWidget {
               minimumSize: const Size.fromHeight(40),
             ),
             onPressed: () async {
-              Navigator.of(context).pop();
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              navigator.pop();
               try {
                 await SupabaseService.client.auth.signOut();
-                Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+                navigator.pushNamedAndRemoveUntil('/welcome', (route) => false);
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   SnackBar(content: Text('Sign out failed: $e'), backgroundColor: Colors.red),
                 );
               }

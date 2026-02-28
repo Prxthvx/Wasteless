@@ -11,14 +11,16 @@ Future<void> showAddInventoryDialog({
 }) async {
    showDialog(
     context: context,
-    builder: (context) => AddInventoryDialog(
+    builder: (dialogContext) => AddInventoryDialog(
       profile: profile,
       onItemAdded: (InventoryItem newItem) async {
+        final navigator = Navigator.of(dialogContext);
+        final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
         try {
           await viewModel.addInventory(newItem, profile.id);
-          Navigator.of(context).pop();
+          navigator.pop();
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text('Error saving item: $e'),
               backgroundColor: Colors.red,

@@ -171,7 +171,7 @@ class DonationRepository {
         try {
           claimedDonations.add(Donation.fromJson(Map<String, dynamic>.from(donationData)));
         } catch (err) {
-          print('[DonationRepository] Error parsing claimed donation: $donationData\nError: $err');
+          debugPrint('[DonationRepository] Error parsing claimed donation: $donationData\nError: $err');
         }
       }
     }
@@ -229,15 +229,15 @@ class DonationRepository {
           .insert(payload)
           .select('*, profiles!donations_restaurant_id_fkey(*)')
           .single();
-      print('[DonationRepository] Donation created: $data');
+      debugPrint('[DonationRepository] Donation created: $data');
       try {
         return Donation.fromJson(Map<String, dynamic>.from(data));
       } catch (err) {
-        print('[DonationRepository] Error parsing created donation: $data\nError: $err');
+        debugPrint('[DonationRepository] Error parsing created donation: $data\nError: $err');
         throw Exception('Failed to parse created donation: $err');
       }
     } catch (e) {
-      print('[DonationRepository] Error creating donation: $e');
+      debugPrint('[DonationRepository] Error creating donation: $e');
       throw Exception('Failed to create donation: $e');
     }
   }

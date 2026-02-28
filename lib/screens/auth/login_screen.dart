@@ -67,12 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      if (response.user != null && mounted) {
+      if (response.user != null) {
         // Save email if remember me is checked
         await _saveEmail();
 
         // User is authenticated, proceed to dashboard
         // The AuthWrapper will handle profile creation if needed
+        if (!mounted) return;
         Navigator.of(context).pushReplacementNamed('/');
       }
     } on AuthException catch (e) {
@@ -142,8 +143,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty)
+                      if (v == null || v.isEmpty) {
                         return 'Please enter your email';
+                      }
                       if (!RegExp(
                         r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                       ).hasMatch(v)) {
