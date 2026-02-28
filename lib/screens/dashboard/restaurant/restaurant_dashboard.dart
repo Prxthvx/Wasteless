@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../models/user_profile.dart';
 import '../../../models/inventory_item.dart';
 import '../../../services/supabase_service.dart';
@@ -44,7 +45,10 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     _viewModel = RestaurantDashboardViewModel();
     _viewModel.addListener(_onViewModelChanged);
 
-    _loadData();
+    // Defer data loading to avoid "too much work on main thread"
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   void _onTabChanged() {

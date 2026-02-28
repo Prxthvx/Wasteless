@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../models/user_profile.dart';
 import '../../../models/donation.dart';
 import '../../../services/repositories/donation_repository.dart';
@@ -35,7 +36,10 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _viewModel = NGODashboardViewModel(_donationRepo);
-    _loadData();
+    // Defer data loading to avoid "too much work on main thread"
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   @override

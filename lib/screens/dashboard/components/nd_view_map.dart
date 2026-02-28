@@ -24,6 +24,12 @@ class _NDViewMapState extends State<NDViewMap> {
   }
 
   @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final validDonations = widget.donations.where((d) =>
       d.restaurantProfile != null &&

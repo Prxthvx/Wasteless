@@ -16,6 +16,9 @@ class InventoryList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: inventory.length,
+      cacheExtent: 200.0, // Cache items for smoother scrolling on low-spec devices
+      addAutomaticKeepAlives: false, // Reduce memory usage
+      addRepaintBoundaries: true, // Optimize repaints
       itemBuilder: (context, index) {
         final item = inventory[index];
         final daysUntilExpiry =

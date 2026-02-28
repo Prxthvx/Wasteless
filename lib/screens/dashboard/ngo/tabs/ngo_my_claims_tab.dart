@@ -96,6 +96,9 @@ class _ClaimsList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: claimedDonations.length,
+      cacheExtent: 200.0, // Cache items for smoother scrolling
+      addAutomaticKeepAlives: false, // Reduce memory usage
+      addRepaintBoundaries: true, // Optimize repaints
       itemBuilder: (context, index) {
         final donation = claimedDonations[index];
         return _ClaimCard(

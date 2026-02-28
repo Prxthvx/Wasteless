@@ -88,6 +88,9 @@ class _ThreadsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: threads.length,
+      cacheExtent: 150.0, // Cache items for smoother scrolling
+      addAutomaticKeepAlives: false, // Reduce memory usage
+      addRepaintBoundaries: true, // Optimize repaints
       itemBuilder: (context, index) {
         final thread = threads[index];
         final unreadCount = getUnreadCount(thread.id);

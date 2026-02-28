@@ -16,6 +16,9 @@ class DonationsList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: donations.length,
+      cacheExtent: 200.0, // Cache items for smoother scrolling
+      addAutomaticKeepAlives: false, // Reduce memory usage
+      addRepaintBoundaries: true, // Optimize repaints
       itemBuilder: (context, index) {
         final donation = donations[index];
 

@@ -109,6 +109,9 @@ class _DonationList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: donations.length,
+      cacheExtent: 200.0, // Cache items for smoother scrolling on low-spec devices
+      addAutomaticKeepAlives: false, // Reduce memory usage
+      addRepaintBoundaries: true, // Optimize repaints
       itemBuilder: (context, index) {
         final donation = donations[index];
         return _DonationCard(

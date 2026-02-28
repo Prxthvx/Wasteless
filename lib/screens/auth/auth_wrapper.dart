@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
 import '../../models/user_profile.dart';
@@ -23,8 +24,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    _checkAuthState();
-    _listenToAuthChanges();
+    // Defer heavy auth operations to avoid "too much work on main thread"
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _checkAuthState();
+      _listenToAuthChanges();
+    });
   }
 
   void _listenToAuthChanges() {

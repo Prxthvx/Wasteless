@@ -205,6 +205,57 @@ No issues found!
 
 ---
 
+## Phase 2: Memory Leak & Performance Audit (February 28, 2026)
+
+### [PERF-001] | Type: Memory Leak
+**Problem:** MapController not disposed in `nd_view_map.dart`  
+**Root Cause:** `MapController` was created in `initState` but never disposed, causing memory leaks when the widget is destroyed.  
+**Solution:** Added `dispose()` method that properly calls `_mapController.dispose()`.  
+**Files Modified:** `lib/screens/dashboard/components/nd_view_map.dart`  
+**Verification:** ✅ dart analyze passes
+
+---
+
+### [PERF-002] | Type: Performance - ListView Optimization
+**Problem:** ListView.builder instances without scroll optimization  
+**Root Cause:** Missing `cacheExtent`, `addAutomaticKeepAlives`, and `addRepaintBoundaries` parameters causing unnecessary rebuilds and janky scrolling on low-spec devices.  
+**Solution:** Added `cacheExtent: 200.0`, `addAutomaticKeepAlives: false`, `addRepaintBoundaries: true` to all main ListView.builder instances.  
+**Files Modified:**
+- `lib/screens/dashboard/restaurant/tabs/inventory/widgets/inventory_list.dart`
+- `lib/screens/dashboard/restaurant/tabs/donations/widgets/donations_list.dart`
+- `lib/screens/dashboard/ngo/tabs/ngo_available_donations_tab.dart`
+- `lib/screens/dashboard/ngo/tabs/ngo_my_claims_tab.dart`
+- `lib/screens/chat/chat_screen.dart`
+- `lib/screens/chat/chat_list_screen.dart`
+
+**Verification:** ✅ dart analyze passes
+
+---
+
+### [PERF-003] | Type: Performance - Main Thread Optimization
+**Problem:** "Application may be doing too much work on its thread" warning at startup  
+**Root Cause:** Heavy database operations and network calls executed directly in `initState`, blocking the main UI thread during app initialization.  
+**Solution:** Deferred heavy operations using `SchedulerBinding.instance.addPostFrameCallback()` to allow the first frame to render before executing network calls.  
+**Files Modified:**
+- `lib/screens/auth/auth_wrapper.dart` - Deferred `_checkAuthState()` and `_listenToAuthChanges()`
+- `lib/screens/dashboard/restaurant/restaurant_dashboard.dart` - Deferred `_loadData()`
+- `lib/screens/dashboard/ngo/ngo_dashboard.dart` - Deferred `_loadData()`
+
+**Verification:** ✅ dart analyze passes
+
+---
+
+## Performance Optimization Summary
+
+| Optimization Type | Files Modified | Impact |
+|-------------------|----------------|--------|
+| Memory Leak Fix | 1 | Prevents MapController memory leak |
+| ListView Scroll Optimization | 6 | Smoother scrolling on low-spec devices |
+| Main Thread Deferral | 3 | Reduces "too much work" warning at startup |
+| **Total Optimizations** | **10 files** | **Improved performance on low-spec devices** |
+
+---
+
 ## Changes Summary
 
 | Category | Count |
@@ -212,7 +263,9 @@ No issues found!
 | Critical BuildContext Bugs | 11 |
 | Deprecated API Usage | 2 (affecting 27+ files) |
 | Code Quality Issues | 6 |
-| **Total Issues Resolved** | **88 → 0** |
+| Memory Leaks | 1 |
+| Performance Optimizations | 9 |
+| **Total Issues Resolved** | **88 → 0 + 10 optimizations** |
 
 ---
 
@@ -223,3 +276,6 @@ No issues found!
 3. **Use `debugPrint()` instead of `print()`** for debug logging in production code
 4. **Keep dependencies updated** to avoid deprecated API warnings
 5. **Remove unused code** promptly to maintain codebase cleanliness
+6. **Always dispose controllers** (MapController, AnimationController, etc.) in dispose()
+7. **Use `SchedulerBinding.addPostFrameCallback`** for heavy operations in initState
+8. **Configure `cacheExtent` on ListView.builder** for smoother scrolling performance

@@ -266,6 +266,9 @@ class _MessagesList extends StatelessWidget {
       controller: scrollController,
       padding: const EdgeInsets.all(16),
       itemCount: messages.length + (isLoadingMore ? 1 : 0),
+      cacheExtent: 300.0, // Cache items for smoother scrolling
+      addAutomaticKeepAlives: false, // Reduce memory usage
+      addRepaintBoundaries: true, // Optimize repaints
       itemBuilder: (context, index) {
         // Loading indicator at top
         if (index == 0 && isLoadingMore) {
