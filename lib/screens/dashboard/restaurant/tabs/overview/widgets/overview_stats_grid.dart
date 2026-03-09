@@ -20,26 +20,53 @@ class OverviewStatsGrid extends StatelessWidget {
         .where((i) => i.expiryDate.difference(DateTime.now()).inDays <= 2)
         .length;
 
-    final activeDonations =
-        donations.where((d) => d.status == 'available').length;
+    final activeDonations = donations
+        .where((d) => d.status == 'available')
+        .length;
 
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.2,
-      children: [
-        _StatCard('Items Expiring Soon', '$expiringSoon', Icons.warning,
-            Colors.orange, () => onNavigate(1)),
-        _StatCard('Active Donations', '$activeDonations', Icons.favorite,
-            Colors.red, () => onNavigate(2)),
-        _StatCard('Total Inventory', '${inventory.length}', Icons.inventory,
-            Colors.blue, () => onNavigate(1)),
-        _StatCard('Total Donations', '${donations.length}',
-            Icons.volunteer_activism, Colors.purple, () => onNavigate(2)),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 360;
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: isCompact ? 1 : 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: isCompact ? 2.6 : 1.0,
+          children: [
+            _StatCard(
+              'Items Expiring Soon',
+              '$expiringSoon',
+              Icons.warning,
+              Colors.orange,
+              () => onNavigate(1),
+            ),
+            _StatCard(
+              'Active Donations',
+              '$activeDonations',
+              Icons.favorite,
+              Colors.red,
+              () => onNavigate(2),
+            ),
+            _StatCard(
+              'Total Inventory',
+              '${inventory.length}',
+              Icons.inventory,
+              Colors.blue,
+              () => onNavigate(1),
+            ),
+            _StatCard(
+              'Total Donations',
+              '${donations.length}',
+              Icons.volunteer_activism,
+              Colors.purple,
+              () => onNavigate(2),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -51,8 +78,7 @@ class _StatCard extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _StatCard(
-      this.title, this.value, this.icon, this.color, this.onTap);
+  const _StatCard(this.title, this.value, this.icon, this.color, this.onTap);
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +88,22 @@ class _StatCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: color, size: 32),
               const SizedBox(height: 8),
-              Text(value,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: color)),
-              Text(title, textAlign: TextAlign.center),
+              Text(
+                value,
+                style: TextStyle(fontWeight: FontWeight.bold, color: color),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),

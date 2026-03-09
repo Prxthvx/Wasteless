@@ -19,14 +19,15 @@ import '../../chat/widgets/unread_badge.dart';
 
 class NGODashboard extends StatefulWidget {
   final UserProfile profile;
-  
+
   const NGODashboard({super.key, required this.profile});
 
   @override
   State<NGODashboard> createState() => _NGODashboardState();
 }
 
-class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMixin {
+class _NGODashboardState extends State<NGODashboard>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late NGODashboardViewModel _viewModel;
   final DonationRepository _donationRepo = DonationRepository();
@@ -49,25 +50,23 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
   }
 
   Future<void> _loadData() async {
-  setState(() => _viewModel.isLoading = true);
+    setState(() => _viewModel.isLoading = true);
 
-  try {
-    await _viewModel.loadData(
-      widget.profile.id,
-      isDemo: widget.profile.id == 'demo-user-id',
-    );
-  } catch (e) {
+    try {
+      await _viewModel.loadData(
+        widget.profile.id,
+        isDemo: widget.profile.id == 'demo-user-id',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
+    }
+
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error loading data: $e')),
-    );
+    setState(() {});
   }
-
-  if (!mounted) return;
-  setState(() {});
-}
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -101,33 +100,63 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             onPressed: () => _showSettings(),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-            Tab(icon: Icon(Icons.map), text: 'Discover'),
-            Tab(icon: Icon(Icons.favorite), text: 'Available'),
-            Tab(icon: Icon(Icons.history), text: 'My Claims'),
-            Tab(icon: Icon(Icons.analytics), text: 'Impact'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(72),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: Colors.white,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              tabs: [
+                _DashboardTab(
+                  icon: Icons.dashboard,
+                  label: 'Overview',
+                  isSelected: _tabController.index == 0,
+                ),
+                _DashboardTab(
+                  icon: Icons.map,
+                  label: 'Discover',
+                  isSelected: _tabController.index == 1,
+                ),
+                _DashboardTab(
+                  icon: Icons.favorite,
+                  label: 'Available',
+                  isSelected: _tabController.index == 2,
+                ),
+                _DashboardTab(
+                  icon: Icons.history,
+                  label: 'My Claims',
+                  isSelected: _tabController.index == 3,
+                ),
+                _DashboardTab(
+                  icon: Icons.analytics,
+                  label: 'Impact',
+                  isSelected: _tabController.index == 4,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          NGOOverviewTab(ngoName: widget.profile.name,
-           viewModel: _viewModel,
-           onNavigate: (index) => _tabController.animateTo(index)),
-          NgoDiscoverTab(viewModel: _viewModel,
-           onRefresh: _loadData),
+          NGOOverviewTab(
+            ngoName: widget.profile.name,
+            viewModel: _viewModel,
+            onNavigate: (index) => _tabController.animateTo(index),
+          ),
+          NgoDiscoverTab(viewModel: _viewModel, onRefresh: _loadData),
           NgoAvailableDonationsTab(
-             isLoading: _viewModel.isLoading,
-             donations: _viewModel.availableDonations,
-             onRefresh: _loadData,
-             onClaim: _claimDonation,),
+            isLoading: _viewModel.isLoading,
+            donations: _viewModel.availableDonations,
+            onRefresh: _loadData,
+            onClaim: _claimDonation,
+          ),
           NgoMyClaimsTab(
             isLoading: _viewModel.isLoading,
             claimedDonations: _viewModel.claimedDonations,
@@ -146,8 +175,6 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
     );
   }
 
-
-
   void _claimDonation(Donation donation) {
     ClaimHelper.showClaimDialog(
       context: context,
@@ -156,9 +183,9 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
       onClaim: (donation) {
         setState(() {
           _viewModel.claimDonation(
-          donation: donation,
-          userId: widget.profile.id,
-        );
+            donation: donation,
+            userId: widget.profile.id,
+          );
         });
       },
       onRefresh: () async {
@@ -291,7 +318,10 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+              title: const Text(
+                'Sign Out',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () => _signOut(),
             ),
           ],
@@ -318,7 +348,46 @@ class _NGODashboardState extends State<NGODashboard> with TickerProviderStateMix
         SnackBar(content: Text('Error signing out: $e')),
       );
     }
-  }  
+  }
 }
 
+class _DashboardTab extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
 
+  const _DashboardTab({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tab(
+      height: 72,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

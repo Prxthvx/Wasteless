@@ -127,18 +127,46 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             onPressed: () => _showSettings(),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-            Tab(icon: Icon(Icons.inventory), text: 'Inventory'),
-            Tab(icon: Icon(Icons.favorite), text: 'Donations'),
-            Tab(icon: Icon(Icons.restaurant_menu), text: 'Recipes'),
-            Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(72),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: Colors.white,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              tabs: [
+                _DashboardTab(
+                  icon: Icons.dashboard,
+                  label: 'Overview',
+                  isSelected: _tabController.index == 0,
+                ),
+                _DashboardTab(
+                  icon: Icons.inventory,
+                  label: 'Inventory',
+                  isSelected: _tabController.index == 1,
+                ),
+                _DashboardTab(
+                  icon: Icons.favorite,
+                  label: 'Donations',
+                  isSelected: _tabController.index == 2,
+                ),
+                _DashboardTab(
+                  icon: Icons.restaurant_menu,
+                  label: 'Recipes',
+                  isSelected: _tabController.index == 3,
+                ),
+                _DashboardTab(
+                  icon: Icons.analytics,
+                  label: 'Analytics',
+                  isSelected: _tabController.index == 4,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -407,7 +435,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
-      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error signing out: $e')));
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Error signing out: $e')),
+      );
     }
   }
 
@@ -504,6 +534,47 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       SnackBar(
         content: Text('Marked ${ingredients.length} ingredients as used!'),
         backgroundColor: Colors.green,
+      ),
+    );
+  }
+}
+
+class _DashboardTab extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+
+  const _DashboardTab({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tab(
+      height: 72,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
