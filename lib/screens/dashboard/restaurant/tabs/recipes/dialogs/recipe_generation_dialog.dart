@@ -7,12 +7,14 @@ class RecipeGenerationDialog extends StatefulWidget {
   final InventoryItem item;
   final Future<List<Map<String, dynamic>>> Function(InventoryItem) generateRecipe;
   final VoidCallback onShowAdvanced;
+  final void Function(Map<String, dynamic> recipe) onRecipeSelected;
 
   const RecipeGenerationDialog({
     super.key,
     required this.item,
     required this.generateRecipe,
     required this.onShowAdvanced,
+    required this.onRecipeSelected,
   });
 
   @override
@@ -224,6 +226,10 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(
+                            onTap: () {
+                              Navigator.pop(context);
+                              widget.onRecipeSelected(recipe);
+                            },
                             title: Text(
                               recipe['name'],
                               style: const TextStyle(fontWeight: FontWeight.bold),
