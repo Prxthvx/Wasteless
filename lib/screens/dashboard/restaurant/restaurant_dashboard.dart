@@ -449,6 +449,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         item: item,
         generateRecipe: _generateAIRecipe,
         onShowAdvanced: _showAdvancedRecipeDialog,
+        onRecipeSelected: _showDetailedAIRecipe,
       ),
     );
   }

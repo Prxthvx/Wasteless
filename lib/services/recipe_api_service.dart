@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/inventory_item.dart';
-// ML model kept for future fallback implementation
-// import '../ml/recipe_predictor.dart';
+import '../ml/recipe_predictor.dart';
 
 // Extension to capitalize first letter of string
 extension StringExtension on String {
@@ -37,10 +36,20 @@ class RecipeApiService {
       
       debugPrint('⚠️ HuggingFace API returned no recipes, trying fallbacks...');
       
-      // 2️⃣ FALLBACK: ML Model (if we have InventoryItem objects)
-      // Note: ML model kept for future fallback implementation
+      // 2️⃣ FALLBACK 1: Local ML Model
+      try {
+        debugPrint('🤖 Trying local ML model...');
+        final mlRecipes = _getRecipesFromLocalML(ingredientNames);
+        if (mlRecipes.isNotEmpty) {
+          debugPrint('✅ Got ${mlRecipes.length} recipes from local ML model');
+          return mlRecipes.take(3).toList(); // Return top 3 recipes
+        }
+      } catch (mlError) {
+        debugPrint('⚠️ Local ML model failed: $mlError');
+      }
       
-      // 3️⃣ FALLBACK: Local generator
+      // 3️⃣ FALLBACK 2: Template-based generator
+      debugPrint('📝 Using template-based fallback generator...');
       final localRecipes = _getFallbackRecipesFromNames(ingredientNames);
       return localRecipes.take(3).toList(); // Return top 3 recipes
       
@@ -83,6 +92,62 @@ class RecipeApiService {
       }
     } catch (e) {
       debugPrint('❌ HuggingFace API exception: $e');
+      return [];
+    }
+  }
+  
+  // Get recipes from local ML model (decision tree)
+  static List<Map<String, dynamic>> _getRecipesFromLocalML(List<String> ingredientNames) {
+    try {
+      // Use local ML model to predict top recipes
+      final recipeNames = RecipePredictor.predictTopRecipes(
+        ingredientNames,
+        topK: 5, // Get top 5 predictions
+      );
+      
+      debugPrint('🤖 ML Model predicted: $recipeNames');
+      
+      // Format predictions into recipe objects
+      return recipeNames.asMap().entries.map((entry) {
+        final index = entry.key;
+        final recipeName = entry.value;
+        
+        // Estimate difficulty based on recipe position (lower score = harder)
+        String difficulty = 'Medium';
+        if (index == 0) {
+          difficulty = 'Easy'; // Best match is usually easier
+        } else if (index >= 3) {
+          difficulty = 'Hard';
+        }
+        
+        // Estimate time based on complexity
+        final timeEstimate = 20 + (index * 5);
+        
+        // Calculate waste reduction (higher confidence = better waste reduction)
+        final wasteReduction = 95 - (index * 5);
+        
+        return {
+          'name': recipeName,
+          'description': 'AI-recommended recipe based on your ingredients',
+          'time': '$timeEstimate min',
+          'difficulty': difficulty,
+          'type': 'main',
+          'wasteReduction': wasteReduction,
+          'ingredients': ingredientNames,
+          'instructions': [
+            '1. Gather all your ingredients',
+            '2. Prepare ingredients according to recipe requirements',
+            '3. Follow standard cooking procedures for "$recipeName"',
+            '4. Cook until ready',
+            '5. Serve and enjoy!',
+          ],
+          'nutritionalValue': 'Balanced meal using your available ingredients',
+          'serves': '2-4 people',
+          'source': 'Local ML Model',
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('❌ Local ML Model error: $e');
       return [];
     }
   }
