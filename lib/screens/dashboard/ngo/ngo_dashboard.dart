@@ -36,6 +36,7 @@ class _NGODashboardState extends State<NGODashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _viewModel = NGODashboardViewModel(_donationRepo);
     // Defer data loading to avoid "too much work on main thread"
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -43,8 +44,14 @@ class _NGODashboardState extends State<NGODashboard>
     });
   }
 
+  void _onTabChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
