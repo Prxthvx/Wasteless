@@ -22,10 +22,9 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
   bool _showConfig = true;
   List<Map<String, dynamic>> _recipes = [];
   String? _error;
-  
+
   // Ingredient selection
   final Set<String> _selectedInventoryItems = {};
-  final TextEditingController _customIngredientsController = TextEditingController();
 
   @override
   void initState() {
@@ -34,16 +33,10 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
     _selectedInventoryItems.addAll(widget.inventory.map((i) => i.id));
   }
 
-  @override
-  void dispose() {
-    _customIngredientsController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadRecipes() async {
-    if (_selectedInventoryItems.isEmpty && _customIngredientsController.text.trim().isEmpty) {
+    if (_selectedInventoryItems.isEmpty) {
       setState(() {
-        _error = 'Please select at least one ingredient or add custom ingredients';
+        _error = 'Please select at least one inventory ingredient';
       });
       return;
     }
@@ -55,22 +48,15 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
     });
 
     try {
-      // Combine selected inventory items with custom ingredients
       final selectedItems = widget.inventory
           .where((item) => _selectedInventoryItems.contains(item.id))
           .map((item) => item.name)
           .toList();
-      
-      final customIngredients = _customIngredientsController.text
-          .split(',')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList();
-      
-      final allIngredients = [...selectedItems, ...customIngredients];
-      
-      final data = await RecipeApiService.getRecipesByIngredientsString(allIngredients);
-      
+
+      final data = await RecipeApiService.getRecipesByIngredientsString(
+        selectedItems,
+      );
+
       setState(() {
         _recipes = data;
         _loading = false;
@@ -119,7 +105,7 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
       title: const Text('Advanced Recipe Generator'),
       content: SizedBox(
         width: 500,
-        height: 600,
+        height: 520,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,7 +122,7 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Select ingredients from your inventory and/or add custom ingredients',
+                      'Select ingredients from your inventory to generate AI recipes',
                       style: TextStyle(fontSize: 13),
                     ),
                   ),
@@ -144,24 +130,25 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Inventory items selection
             Text(
               'Your Inventory (${_selectedInventoryItems.length}/${widget.inventory.length} selected)',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            
+
             // Select all / Deselect all buttons
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 TextButton.icon(
                   onPressed: () {
                     setState(() {
-                      _selectedInventoryItems.addAll(widget.inventory.map((i) => i.id));
+                      _selectedInventoryItems.addAll(
+                        widget.inventory.map((i) => i.id),
+                      );
                     });
                   },
                   icon: const Icon(Icons.check_box, size: 18),
@@ -180,13 +167,11 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
               ],
             ),
             const SizedBox(height: 8),
-            
+
             // Inventory list with checkboxes
             Expanded(
               child: widget.inventory.isEmpty
-                  ? const Center(
-                      child: Text('No inventory items available'),
-                    )
+                  ? const Center(child: Text('No inventory items available'))
                   : Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
@@ -196,10 +181,14 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                         itemCount: widget.inventory.length,
                         itemBuilder: (context, index) {
                           final item = widget.inventory[index];
-                          final isSelected = _selectedInventoryItems.contains(item.id);
-                          final daysUntilExpiry = item.expiryDate.difference(DateTime.now()).inDays;
+                          final isSelected = _selectedInventoryItems.contains(
+                            item.id,
+                          );
+                          final daysUntilExpiry = item.expiryDate
+                              .difference(DateTime.now())
+                              .inDays;
                           final isExpiringSoon = daysUntilExpiry <= 3;
-                          
+
                           return CheckboxListTile(
                             value: isSelected,
                             onChanged: (value) {
@@ -213,7 +202,13 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                             },
                             title: Row(
                               children: [
-                                Text(item.name),
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                                 if (isExpiringSoon) ...[
                                   const SizedBox(width: 8),
                                   Container(
@@ -250,27 +245,7 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                     ),
             ),
             const SizedBox(height: 16),
-            
-            // Custom ingredients input
-            const Text(
-              'Custom Ingredients (Optional)',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _customIngredientsController,
-              decoration: const InputDecoration(
-                hintText: 'e.g., garlic, soya sauce, ginger, olive oil',
-                border: OutlineInputBorder(),
-                helperText: 'Separate ingredients with commas',
-                prefixIcon: Icon(Icons.add_circle_outline),
-              ),
-              maxLines: 2,
-            ),
-            
+
             // Error message
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -282,7 +257,11 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -328,9 +307,9 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                 const SizedBox(height: 4),
                 Text(
                   'Top ${_recipes.length} recipes from HuggingFace',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
@@ -419,7 +398,8 @@ class _AdvancedRecipeDialogState extends State<AdvancedRecipeDialog> {
                                   color: Colors.green,
                                 ),
                                 RecipeTag(
-                                  text: '${recipe['wasteReduction']}% waste reduction',
+                                  text:
+                                      '${recipe['wasteReduction']}% waste reduction',
                                   icon: Icons.eco,
                                   color: Colors.orange,
                                 ),
