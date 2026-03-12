@@ -227,7 +227,7 @@ class _ImpactChartSection extends StatelessWidget {
               SizedBox(
                 height: 250,
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 16, top: 16),
+                  padding: const EdgeInsets.only(right: 10, top: 16),
                   child: BarChart(
                     BarChartData(
                       alignment: BarChartAlignment.spaceAround,
@@ -270,9 +270,23 @@ class _ImpactChartSection extends StatelessWidget {
                           ),
                         ),
                         leftTitles: AxisTitles(
+                          axisNameWidget: const Padding(
+                            padding: EdgeInsets.only(right: 4.0),
+                            child: RotatedBox(
+                              quarterTurns: 4,
+                              child: Text(
+                                'Donations Claimed',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          axisNameSize: 55,
                           sideTitles: SideTitles(
                             showTitles: true,
-                            reservedSize: 40,
+                            reservedSize: 35,
                             getTitlesWidget: (value, meta) {
                               return Text(
                                 value.toInt().toString(),
