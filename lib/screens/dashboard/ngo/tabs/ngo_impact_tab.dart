@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 
 class NgoImpactTab extends StatelessWidget {
   final Map<String, dynamic> analytics;
+  final Map<String, int> monthlyClaimsData;
 
   const NgoImpactTab({
     super.key,
     required this.analytics,
+    required this.monthlyClaimsData,
   });
 
   @override
@@ -19,7 +23,7 @@ class NgoImpactTab extends StatelessWidget {
           _MonthlyOverviewSection(analytics: analytics),
           const SizedBox(height: 16),
 
-          const _ImpactChartSection(),
+          _ImpactChartSection(monthlyClaimsData: monthlyClaimsData),
           const SizedBox(height: 16),
 
           const _TopCategoriesSection(),
@@ -143,10 +147,56 @@ class _AnalyticCard extends StatelessWidget {
 }
 
 class _ImpactChartSection extends StatelessWidget {
-  const _ImpactChartSection();
+  final Map<String, int> monthlyClaimsData;
+
+  const _ImpactChartSection({required this.monthlyClaimsData});
 
   @override
   Widget build(BuildContext context) {
+    // Sort the data by month
+    final sortedEntries = monthlyClaimsData.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    // Prepare data for the chart
+    final List<BarChartGroupData> barGroups = [];
+    final List<String> monthLabels = [];
+
+    for (int i = 0; i < sortedEntries.length; i++) {
+      final entry = sortedEntries[i];
+      final count = entry.value;
+      
+      // Parse month from key (format: 'YYYY-MM')
+      try {
+        final parts = entry.key.split('-');
+        if (parts.length == 2) {
+          final month = int.parse(parts[1]);
+          final monthName = DateFormat('MMM').format(DateTime(2000, month));
+          monthLabels.add(monthName);
+        } else {
+          monthLabels.add(entry.key);
+        }
+      } catch (e) {
+        monthLabels.add(entry.key);
+      }
+
+      barGroups.add(
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: count.toDouble(),
+              color: Colors.blue,
+              width: 16,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -158,20 +208,109 @@ class _ImpactChartSection extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text(
-                  '📊 Impact chart would go here\n(Integration with charts library)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+            if (monthlyClaimsData.isEmpty)
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text(
+                    'No data available yet.\nStart claiming donations to see your impact!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 250,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16, top: 16),
+                  child: BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: (sortedEntries.map((e) => e.value).reduce((a, b) => a > b ? a : b) * 1.2).toDouble(),
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              '${monthLabels[group.x.toInt()]}\n${rod.toY.toInt()} donations',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index >= 0 && index < monthLabels.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Text(
+                                    monthLabels[index],
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                value.toInt().toString(),
+                                style: const TextStyle(fontSize: 12),
+                              );
+                            },
+                          ),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 1,
+                        getDrawingHorizontalLine: (value) {
+                          return FlLine(
+                            color: Colors.grey[300],
+                            strokeWidth: 1,
+                          );
+                        },
+                      ),
+                      borderData: FlBorderData(
+                        show: true,
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey[300]!),
+                          left: BorderSide(color: Colors.grey[300]!),
+                        ),
+                      ),
+                      barGroups: barGroups,
+                    ),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

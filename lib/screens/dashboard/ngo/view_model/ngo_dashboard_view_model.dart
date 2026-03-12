@@ -12,6 +12,7 @@ class NGODashboardViewModel {
 
   List<Donation> availableDonations = [];
   List<Donation> claimedDonations = [];
+  Map<String, int> monthlyClaimsData = {};
 
   Map<String, dynamic> analytics = {
     'totalDonationsClaimed': 0,
@@ -28,10 +29,12 @@ class NGODashboardViewModel {
       await Future.delayed(const Duration(milliseconds: 500));
       availableDonations = _getMockAvailableDonations();
       claimedDonations = _getMockClaimedDonations(userId);
+      monthlyClaimsData = _getMockMonthlyClaimsData();
     }
     else {
       availableDonations = await _donationRepo.listAvailableDonations();
       claimedDonations = await _donationRepo.listMyClaimedDonations(userId);
+      monthlyClaimsData = await _donationRepo.getMonthlyClaimsStatistics(userId);
     }
 
     analytics = AnalyticsHelper.calculateAnalytics(claimedDonations);
@@ -88,6 +91,18 @@ class NGODashboardViewModel {
         claimedAt: DateTime.now().subtract(const Duration(hours: 6)),
       ),
     ];
+  }
+
+  Map<String, int> _getMockMonthlyClaimsData() {
+    final now = DateTime.now();
+    return {
+      '${now.year}-${(now.month - 5).toString().padLeft(2, '0')}': 3,
+      '${now.year}-${(now.month - 4).toString().padLeft(2, '0')}': 5,
+      '${now.year}-${(now.month - 3).toString().padLeft(2, '0')}': 8,
+      '${now.year}-${(now.month - 2).toString().padLeft(2, '0')}': 6,
+      '${now.year}-${(now.month - 1).toString().padLeft(2, '0')}': 10,
+      '${now.year}-${now.month.toString().padLeft(2, '0')}': 7,
+    };
   }
 
   void claimDonation({

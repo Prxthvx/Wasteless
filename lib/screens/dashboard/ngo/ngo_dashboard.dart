@@ -170,7 +170,10 @@ class _NGODashboardState extends State<NGODashboard>
             claimedDonations: _viewModel.claimedDonations,
             onAction: _handleClaimAction,
           ),
-          NgoImpactTab(analytics: _viewModel.analytics),
+          NgoImpactTab(
+            analytics: _viewModel.analytics,
+            monthlyClaimsData: _viewModel.monthlyClaimsData,
+          ),
         ],
       ),
       drawer: NgoDashboardDrawer(

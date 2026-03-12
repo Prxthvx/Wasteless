@@ -261,4 +261,51 @@ class DonationRepository {
       return false;
     }
   }
+
+  /// Get monthly donation claims statistics for an NGO
+  /// Returns a map with month-year keys and claim counts
+  Future<Map<String, int>> getMonthlyClaimsStatistics(String ngoId, {int monthsBack = 6}) async {
+    try {
+      // Calculate date range
+      final now = DateTime.now();
+      final startDate = DateTime(now.year, now.month - monthsBack, 1);
+      
+      debugPrint('[DonationRepository] Fetching monthly claims from $startDate for NGO $ngoId');
+
+      // Fetch all claims for this NGO within the date range
+      final claims = await _client
+          .from('donation_claims')
+          .select('claimed_at')
+          .eq('ngo_id', ngoId)
+          .gte('claimed_at', startDate.toIso8601String())
+          .order('claimed_at', ascending: true);
+
+      debugPrint('[DonationRepository] Fetched ${(claims as List).length} claims');
+
+      // Group claims by month
+      final Map<String, int> monthlyStats = {};
+      
+      // Initialize all months with 0
+      for (int i = 0; i <= monthsBack; i++) {
+        final date = DateTime(now.year, now.month - i, 1);
+        final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+        monthlyStats[key] = 0;
+      }
+
+      // Count claims per month
+      for (final claim in claims) {
+        final claimedAtStr = claim['claimed_at'] as String;
+        final claimedAt = DateTime.parse(claimedAtStr);
+        final key = '${claimedAt.year}-${claimedAt.month.toString().padLeft(2, '0')}';
+        monthlyStats[key] = (monthlyStats[key] ?? 0) + 1;
+      }
+
+      debugPrint('[DonationRepository] Monthly stats: $monthlyStats');
+      return monthlyStats;
+    } catch (e, stackTrace) {
+      debugPrint('[DonationRepository] Error fetching monthly statistics: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return {};
+    }
+  }
 }
